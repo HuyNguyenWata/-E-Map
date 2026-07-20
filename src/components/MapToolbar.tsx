@@ -10,6 +10,9 @@ interface Props {
   fullscreen: () => void;
 
   reset: () => void;
+  drawZone: boolean;
+
+  setDrawZone: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 function MapToolbar({
@@ -24,40 +27,42 @@ function MapToolbar({
   fullscreen,
 
   reset,
+  drawZone,
+  setDrawZone,
 }: Props) {
   return (
-    <div
-      style={{
-        position: "absolute",
+    <div className="map-toolbar">
+      <button
+        className={"btn" + (showHeatmap ? " btn-active" : "")}
+        onClick={() => setShowHeatmap(!showHeatmap)}
+        title="Bật/tắt lớp nhiệt"
+      >
+        🔥 Heatmap
+      </button>
 
-        right: 20,
+      <button
+        className={"btn" + (showCamera ? " btn-active" : "")}
+        onClick={() => setShowCamera(!showCamera)}
+        title="Bật/tắt camera"
+      >
+        📷 Camera
+      </button>
 
-        top: 20,
+      <button className="btn" onClick={reset} title="Đưa bản đồ về vị trí gốc">
+        🎯 Reset
+      </button>
 
-        zIndex: 2000,
+      <button className="btn" onClick={fullscreen} title="Toàn màn hình">
+        ⛶ Fullscreen
+      </button>
 
-        background: "#fff",
-
-        padding: 10,
-
-        borderRadius: 10,
-
-        boxShadow: "0 4px 15px rgba(0,0,0,.2)",
-
-        display: "flex",
-
-        flexDirection: "column",
-
-        gap: 10,
-      }}
-    >
-      <button onClick={() => setShowHeatmap(!showHeatmap)}>🔥 Heatmap</button>
-
-      <button onClick={() => setShowCamera(!showCamera)}>📷 Camera</button>
-
-      <button onClick={reset}>🎯 Reset</button>
-
-      <button onClick={fullscreen}>⛶ Fullscreen</button>
+      <button
+        className={"btn" + (drawZone ? " btn-active" : "")}
+        onClick={() => setDrawZone((prev) => !prev)}
+        title="Vẽ khu vực mới"
+      >
+        {drawZone ? "✕ Hủy vẽ" : "✏️ Vẽ Zone"}
+      </button>
     </div>
   );
 }

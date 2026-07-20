@@ -9,7 +9,11 @@ function CameraWallButton({
 
   count,
 }: Props) {
-  return <button onClick={open}>📺 Camera Wall ({count})</button>;
+  return (
+    <button className="btn btn-primary btn-fab" onClick={open}>
+      📺 Camera Wall{count > 0 ? ` (${count})` : ""}
+    </button>
+  );
 }
 
 export default CameraWallButton;

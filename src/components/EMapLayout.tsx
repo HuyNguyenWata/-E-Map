@@ -18,6 +18,8 @@ function EMapLayout({ left, center, right }: Props) {
         height: "100vh",
 
         overflow: "hidden",
+
+        background: "var(--bg-app)",
       }}
     >
       {/* LEFT */}
@@ -28,13 +30,14 @@ function EMapLayout({ left, center, right }: Props) {
 
           height: "100%",
 
-          background: "#fff",
+          background: "var(--panel-bg)",
 
-          borderRight: "1px solid #ddd",
+          borderRight: "1px solid var(--border)",
 
           overflow: "hidden",
 
           zIndex: 1000,
+          boxShadow: "var(--shadow-sm)",
         }}
       >
         {left}
@@ -62,13 +65,14 @@ function EMapLayout({ left, center, right }: Props) {
 
           height: "100%",
 
-          background: "#fff",
+          background: "var(--panel-bg)",
 
-          borderLeft: "1px solid #ddd",
+          borderLeft: "1px solid var(--border)",
 
           overflow: "hidden",
 
           zIndex: 1000,
+          boxShadow: "var(--shadow-sm)",
         }}
       >
         {right}

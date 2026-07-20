@@ -6,57 +6,47 @@ interface Props {
 
 function CameraPopup({ camera }: Props) {
   return (
-    <div
-      style={{
-        width: 280,
-      }}
-    >
-      <h3>{camera.name}</h3>
-
-      <p>
-        Địa chỉ:
-        <br />
-        {camera.address}
-      </p>
-
-      <p>
-        Trạng thái:
-        <b
-          style={{
-            color: camera.status === "online" ? "green" : "gray",
-          }}
+    <div className="marker-popup" style={{ width: 260 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <h3 style={{ margin: 0 }}>{camera.name}</h3>
+        <span
+          className={
+            "badge " +
+            (camera.status === "online" ? "badge-online" : "badge-offline")
+          }
         >
-          {" "}
-          {camera.status}
-        </b>
-      </p>
+          <span className="badge-dot" />
+          {camera.status === "online" ? "Online" : "Offline"}
+        </span>
+      </div>
+
+      <p>{camera.address}</p>
 
       <p>
-        Signal:
-        <b> {camera.signal}%</b>
+        Signal: <b style={{ color: "var(--text)" }}>{camera.signal}%</b>
       </p>
 
-      <p>
-        Last Seen:
-        <br />
-        {camera.lastSeen}
-      </p>
+      <p>Last seen: {camera.lastSeen}</p>
 
       {camera.alert && (
-        <div>
-          <hr />
-
-          <h4>🚨 Alert</h4>
-
-          <p>
-            Loại:
-            {camera.alert.type}
-          </p>
-
-          <p>
-            Mức độ:
-            <b> {camera.alert.severity}</b>
-          </p>
+        <div style={{ marginTop: 6 }}>
+          <span
+            className={
+              "badge " +
+              (camera.alert.severity === "critical"
+                ? "badge-critical"
+                : "badge-warning")
+            }
+          >
+            🚨 {camera.alert.type} · {camera.alert.severity}
+          </span>
         </div>
       )}
 

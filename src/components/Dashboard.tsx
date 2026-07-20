@@ -24,45 +24,57 @@ function Dashboard({ cameras, alerts }: Props) {
 
   return (
     <div
+      className="panel-block"
       style={{
         width: "100%",
-
-        background: "#fff",
-
-        borderRadius: 12,
-
-        padding: 16,
-
+        padding: 14,
         boxSizing: "border-box",
-
-        boxShadow: "0 2px 10px rgba(0,0,0,.1)",
+        flexShrink: 0,
       }}
     >
-      <h3>📷 Camera Dashboard</h3>
+      <h3 className="panel-title" style={{ marginBottom: 12 }}>
+        📷 Camera Dashboard
+      </h3>
 
-      <div className="dashboard-item">
-        Tổng camera:
-        <b>{totalCamera}</b>
-      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 8,
+        }}
+      >
+        <div className="dashboard-stat">
+          <span className="dashboard-stat-label">Tổng camera</span>
+          <b className="dashboard-stat-value">{totalCamera}</b>
+        </div>
 
-      <div className="dashboard-item">
-        🟢 Online:
-        <b>{onlineCamera}</b>
-      </div>
+        <div className="dashboard-stat">
+          <span className="dashboard-stat-label">🟢 Online</span>
+          <b className="dashboard-stat-value" style={{ color: "var(--success)" }}>
+            {onlineCamera}
+          </b>
+        </div>
 
-      <div className="dashboard-item">
-        ⚪ Offline:
-        <b>{offlineCamera}</b>
-      </div>
+        <div className="dashboard-stat">
+          <span className="dashboard-stat-label">⚪ Offline</span>
+          <b className="dashboard-stat-value" style={{ color: "var(--neutral)" }}>
+            {offlineCamera}
+          </b>
+        </div>
 
-      <div className="dashboard-item">
-        🚨 Alert:
-        <b>{alerts.length}</b>
-      </div>
+        <div className="dashboard-stat">
+          <span className="dashboard-stat-label">🚨 Alert</span>
+          <b className="dashboard-stat-value" style={{ color: "var(--warning)" }}>
+            {alerts.length}
+          </b>
+        </div>
 
-      <div className="dashboard-item">
-        🔥 Critical:
-        <b>{criticalAlerts}</b>
+        <div className="dashboard-stat" style={{ gridColumn: "1 / -1" }}>
+          <span className="dashboard-stat-label">🔥 Critical</span>
+          <b className="dashboard-stat-value" style={{ color: "var(--danger)" }}>
+            {criticalAlerts}
+          </b>
+        </div>
       </div>
     </div>
   );

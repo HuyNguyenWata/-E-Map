@@ -20,10 +20,11 @@ function FilterPanel({
   result,
 }: Props) {
   return (
-    <div>
-      <h3>🔍 Camera Filter</h3>
+    <div className="panel-block" style={{ padding: 14 }}>
+      <h3 className="panel-title">🔍 Camera Filter</h3>
 
       <input
+        className="text-input"
         placeholder="Tên hoặc địa chỉ"
         value={filter.keyword}
         onChange={(e) =>
@@ -35,84 +36,106 @@ function FilterPanel({
         }
       />
 
-      <hr />
+      <div style={{ marginTop: 12 }}>
+        <span className="field-label">Status</span>
 
-      <h4>Status</h4>
+        <div className="radio-row">
+          <label
+            className={
+              "radio-pill" + (filter.status === "all" ? " radio-pill-active" : "")
+            }
+          >
+            <input
+              type="radio"
+              checked={filter.status === "all"}
+              onChange={() =>
+                setFilter({
+                  ...filter,
 
-      <label>
-        <input
-          type="radio"
-          checked={filter.status === "all"}
-          onChange={() =>
+                  status: "all",
+                })
+              }
+            />
+            All
+          </label>
+
+          <label
+            className={
+              "radio-pill" +
+              (filter.status === "online" ? " radio-pill-active" : "")
+            }
+          >
+            <input
+              type="radio"
+              checked={filter.status === "online"}
+              onChange={() =>
+                setFilter({
+                  ...filter,
+
+                  status: "online",
+                })
+              }
+            />
+            🟢 Online
+          </label>
+
+          <label
+            className={
+              "radio-pill" +
+              (filter.status === "offline" ? " radio-pill-active" : "")
+            }
+          >
+            <input
+              type="radio"
+              checked={filter.status === "offline"}
+              onChange={() =>
+                setFilter({
+                  ...filter,
+
+                  status: "offline",
+                })
+              }
+            />
+            ⚪ Offline
+          </label>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <span className="field-label">Alert</span>
+
+        <select
+          className="select-input"
+          value={filter.alert}
+          onChange={(e) =>
             setFilter({
               ...filter,
 
-              status: "all",
+              alert: e.target.value as any,
             })
           }
-        />
-        All
-      </label>
+        >
+          <option value="all">Tất cả</option>
 
-      <label>
-        <input
-          type="radio"
-          checked={filter.status === "online"}
-          onChange={() =>
-            setFilter({
-              ...filter,
+          <option value="critical">🔥 Critical</option>
 
-              status: "online",
-            })
-          }
-        />
-        🟢 Online
-      </label>
+          <option value="warning">⚠ Warning</option>
 
-      <label>
-        <input
-          type="radio"
-          checked={filter.status === "offline"}
-          onChange={() =>
-            setFilter({
-              ...filter,
+          <option value="none">Không cảnh báo</option>
+        </select>
+      </div>
 
-              status: "offline",
-            })
-          }
-        />
-        ⚪ Offline
-      </label>
-
-      <hr />
-
-      <h4>Alert</h4>
-
-      <select
-        value={filter.alert}
-        onChange={(e) =>
-          setFilter({
-            ...filter,
-
-            alert: e.target.value as any,
-          })
-        }
+      <p
+        style={{
+          marginTop: 12,
+          fontSize: 12,
+          color: "var(--text-muted)",
+        }}
       >
-        <option value="all">Tất cả</option>
-
-        <option value="critical">🔥 Critical</option>
-
-        <option value="warning">⚠ Warning</option>
-
-        <option value="none">Không cảnh báo</option>
-      </select>
-
-      <p>
-        Hiển thị:
-        <b>
-          {" "}
+        Hiển thị:{" "}
+        <b style={{ color: "var(--text)" }}>
           {result}/{total}
-        </b>
+        </b>{" "}
         camera
       </p>
     </div>

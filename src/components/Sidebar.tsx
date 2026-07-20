@@ -15,42 +15,56 @@ function Sidebar({ cameras, onSelect }: Props) {
 
         flexDirection: "column",
 
-        gap: 12,
+        gap: 8,
       }}
     >
-      <h3>Danh sách Camera</h3>
+      <h3 className="panel-title" style={{ marginBottom: 2 }}>
+        Danh sách Camera ({cameras.length})
+      </h3>
+
+      {cameras.length === 0 && (
+        <div className="empty-state">Không tìm thấy camera phù hợp</div>
+      )}
 
       {cameras.map((camera) => (
         <div
           key={camera.id}
           onClick={() => onSelect(camera)}
+          className="card card-clickable"
           style={{
-            cursor: "pointer",
-
-            padding: 12,
-
-            background: "#fff",
-
-            border: "1px solid #ddd",
-
-            borderRadius: 8,
+            padding: 10,
           }}
         >
-          <b>{camera.name}</b>
-
-          <br />
-
-          {camera.address}
-
-          <br />
-
-          <span
+          <div
             style={{
-              color: camera.status === "online" ? "green" : "red",
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 8,
             }}
           >
-            {camera.status}
-          </span>
+            <b style={{ fontSize: 13 }}>{camera.name}</b>
+
+            <span
+              className={
+                "badge " +
+                (camera.status === "online" ? "badge-online" : "badge-offline")
+              }
+            >
+              <span className="badge-dot" />
+              {camera.status === "online" ? "Online" : "Offline"}
+            </span>
+          </div>
+
+          <div
+            style={{
+              fontSize: 12,
+              color: "var(--text-muted)",
+              marginTop: 4,
+            }}
+          >
+            {camera.address}
+          </div>
         </div>
       ))}
     </div>

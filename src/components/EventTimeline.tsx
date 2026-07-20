@@ -7,10 +7,10 @@ interface Props {
 function EventTimeline({ events }: Props) {
   return (
     <div>
-      <h3>📅 Event Timeline</h3>
+      <h3 style={{ marginBottom: 8 }}>📅 Event Timeline</h3>
 
       {events.length === 0 ? (
-        <p>Không có sự kiện</p>
+        <div className="empty-state">Không có sự kiện</div>
       ) : (
         events.map((event) => (
           <div
@@ -22,12 +22,12 @@ function EventTimeline({ events }: Props) {
 
               padding: "10px 0",
 
-              borderLeft: "3px solid #ddd",
+              borderLeft: "3px solid var(--border)",
 
               paddingLeft: 15,
             }}
           >
-            <div>
+            <div style={{ fontSize: 16 }}>
               {event.type === "fire"
                 ? "🔥"
                 : event.type === "person"
@@ -38,15 +38,27 @@ function EventTimeline({ events }: Props) {
             </div>
 
             <div>
-              <b>{event.type}</b>
+              <b style={{ fontSize: 13, textTransform: "capitalize" }}>
+                {event.type}
+              </b>
 
-              <br />
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                {event.time}
+              </div>
 
-              <span>{event.time}</span>
-
-              <br />
-
-              <small>{event.severity}</small>
+              <span
+                className={
+                  "badge " +
+                  (event.severity === "critical"
+                    ? "badge-critical"
+                    : event.severity === "warning"
+                      ? "badge-warning"
+                      : "badge-info")
+                }
+                style={{ marginTop: 4 }}
+              >
+                {event.severity}
+              </span>
             </div>
           </div>
         ))

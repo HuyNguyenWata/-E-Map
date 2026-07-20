@@ -10,8 +10,8 @@ function CameraVideoCard({ camera, onRemove }: Props) {
     <div
       style={{
         height: "100%",
-        border: "1px solid #ddd",
-        borderRadius: 8,
+        display: "flex",
+        flexDirection: "column",
         overflow: "hidden",
         background: "#000",
       }}
@@ -19,14 +19,33 @@ function CameraVideoCard({ camera, onRemove }: Props) {
       <div
         style={{
           display: "flex",
+          alignItems: "center",
           justifyContent: "space-between",
-          padding: 8,
-          background: "#111",
+          padding: "8px 10px",
+          background: "rgba(17,17,17,.85)",
           color: "#fff",
+          flexShrink: 0,
         }}
       >
-        <span>📷 {camera.name}</span>
-        <button onClick={onRemove}>✕</button>
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          📷 {camera.name}
+        </span>
+        <button
+          className="btn btn-icon btn-ghost"
+          onClick={onRemove}
+          title="Bỏ khỏi Camera Wall"
+          style={{ color: "#fff", width: 26, height: 26 }}
+        >
+          ✕
+        </button>
       </div>
 
       <video
@@ -36,7 +55,8 @@ function CameraVideoCard({ camera, onRemove }: Props) {
         playsInline
         style={{
           width: "100%",
-          height: "100%",
+          flex: 1,
+          minHeight: 0,
           objectFit: "contain",
           display: "block",
         }}

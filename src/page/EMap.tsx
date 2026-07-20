@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-
+import { useState } from "react";
+import useZoneCamera from "../hooks/useZoneCamera";
 import EMapLayout from "../components/EMapLayout";
 
 import LeftPanel from "../components/LeftPanel";
@@ -9,7 +9,7 @@ import useCameraWall from "../hooks/useCameraWall";
 import CameraWallButton from "../components/CameraWallButton";
 import CameraWall from "../components/CameraWall";
 import RightPanel from "../components/RightPanel";
-
+import type { ZoneWithCamera } from "../types/zoneWithCamera";
 import useCamera from "../hooks/useCamera";
 import useCameraFilter from "../hooks/useCameraFilter";
 import useCameraRealtime from "../hooks/useCameraRealtime";
@@ -18,6 +18,7 @@ import useZone from "../hooks/useZone";
 function EMap() {
   const { cameras } = useCamera();
   const { zones } = useZone(cameras);
+
   const {
     filter,
 
@@ -26,7 +27,7 @@ function EMap() {
     filtered,
   } = useCameraFilter(cameras);
   const { alerts } = useCameraRealtime(cameras, () => {});
-
+  const [selectedZone, setSelectedZone] = useState<ZoneWithCamera | null>(null);
   const [selectedCamera, setSelectedCamera] = useState(null);
   const {
     selectedCameras,
@@ -38,12 +39,12 @@ function EMap() {
     clearCamera,
   } = useCameraWall();
   const [showHeatmap, setShowHeatmap] = useState(true);
-
+  const [drawZone, setDrawZone] = useState(false);
   const [showCamera, setShowCamera] = useState(true);
 
   const [map, setMap] = useState<any>(null);
   const [showWall, setShowWall] = useState(false);
-
+  const { zoneCameras } = useZoneCamera(filtered, selectedZone);
   const resetMap = () => {
     if (!map) return;
 
@@ -60,12 +61,17 @@ function EMap() {
       element.requestFullscreen();
     }
   };
+  const handleCreateZone = (polygon: [number, number][]) => {
+    console.log("Polygon:", polygon);
+
+    alert("Đã tạo polygon gồm " + polygon.length + " điểm");
+  };
   return (
     <EMapLayout
       left={
         <LeftPanel
-          cameras={cameras}
-          filtered={filtered}
+          cameras={zoneCameras}
+          filtered={zoneCameras}
           filter={filter}
           setFilter={setFilter}
           onSelect={(camera) => {
@@ -73,6 +79,10 @@ function EMap() {
 
             addCamera(camera);
           }}
+          zones={zones}
+          selectedZone={selectedZone?.id ?? null}
+          onSelectZone={setSelectedZone}
+          onClear={() => setSelectedZone(null)}
         />
       }
       center={
@@ -84,7 +94,7 @@ function EMap() {
           }}
         >
           <MapView
-            cameras={filtered}
+            cameras={zoneCameras}
             alerts={alerts}
             onSelect={(camera) => {
               setSelectedCamera(camera);
@@ -94,6 +104,10 @@ function EMap() {
             showCamera={showCamera}
             onMapReady={setMap}
             zones={zones}
+            selectedZone={selectedZone?.id ?? null}
+            onSelectZone={setSelectedZone}
+            drawZone={drawZone}
+            onCreateZone={handleCreateZone}
           />
 
           {/* Overlay trên map */}
@@ -101,7 +115,7 @@ function EMap() {
             style={{
               position: "absolute",
               top: 20,
-              left: 20,
+              right: 20,
               zIndex: 2000,
             }}
           >
@@ -112,6 +126,8 @@ function EMap() {
               setShowCamera={setShowCamera}
               fullscreen={fullscreen}
               reset={resetMap}
+              drawZone={drawZone}
+              setDrawZone={setDrawZone}
             />
           </div>
 
@@ -138,14 +154,43 @@ function EMap() {
 
                 zIndex: 3000,
 
-                background: "#fff",
+                background: "var(--panel-bg)",
+
+                display: "flex",
+                flexDirection: "column",
               }}
             >
-              <button onClick={() => setShowWall(false)}>
-                Đóng Camera Wall
-              </button>
-              <button onClick={clearCamera}>Clear All</button>{" "}
-              <CameraWall cameras={selectedCameras} onRemove={removeCamera} />
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "12px 20px",
+                  borderBottom: "1px solid var(--border)",
+                  flexShrink: 0,
+                }}
+              >
+                <h2 style={{ margin: 0 }}>📺 Camera Wall</h2>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button className="btn btn-danger" onClick={clearCamera}>
+                    Clear All
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={() => setShowWall(false)}
+                  >
+                    ✕ Đóng
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <CameraWall
+                  cameras={selectedCameras}
+                  onRemove={removeCamera}
+                />
+              </div>
             </div>
           )}
         </div>

@@ -30,73 +30,83 @@ function CameraDetailPanel({
   return (
     <div
       style={{
-        position: "absolute",
-
-        right: 20,
-
-        top: 20,
-
-        width: 350,
-
-        height: "calc(100vh - 40px)",
-
-        background: "#fff",
-
-        zIndex: 2000,
-
-        borderRadius: 12,
-
-        padding: 20,
-
+        width: "100%",
+        height: "100%",
+        boxSizing: "border-box",
+        padding: 18,
         overflow: "auto",
-
-        boxShadow: "0 5px 20px rgba(0,0,0,.25)",
       }}
+      className="scroll-area"
     >
-      <button
-        onClick={onClose}
+      <div
         style={{
-          float: "right",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 8,
         }}
       >
-        Đóng
-      </button>
+        <div>
+          <h2 style={{ marginBottom: 6 }}>{camera.name}</h2>
+          <span
+            className={
+              "badge " +
+              (camera.status === "online" ? "badge-online" : "badge-offline")
+            }
+          >
+            <span className="badge-dot" />
+            {camera.status === "online" ? "Online" : "Offline"}
+          </span>
+        </div>
 
-      <h2>{camera.name}</h2>
+        <button className="btn btn-icon btn-ghost" onClick={onClose} title="Đóng">
+          ✕
+        </button>
+      </div>
 
-      <p>
-        Địa chỉ:
-        <br />
+      <p
+        style={{
+          marginTop: 12,
+          fontSize: 13,
+          color: "var(--text-muted)",
+        }}
+      >
         {camera.address}
-      </p>
-
-      <p>
-        Trạng thái:
-        <b
-          style={{
-            color: camera.status === "online" ? "green" : "red",
-          }}
-        >
-          {" "}
-          {camera.status}
-        </b>
       </p>
 
       <hr />
 
       <h3>Live Camera</h3>
 
-      <video width="100%" controls muted>
+      <video
+        width="100%"
+        controls
+        muted
+        style={{
+          marginTop: 8,
+          borderRadius: "var(--radius-md)",
+          background: "#000",
+        }}
+      >
         <source src={camera.streamUrl} type="video/mp4" />
       </video>
 
       <hr />
 
       <h3>Lịch sử cảnh báo</h3>
+      <p
+        style={{
+          fontSize: 12,
+          color: "var(--text-faint)",
+          marginTop: 6,
+        }}
+      >
+        Chưa có dữ liệu
+      </p>
 
       <hr />
 
-      <h3>Lịch sử sự kiện</h3>
+      <h3 style={{ marginBottom: 10 }}>Lịch sử sự kiện</h3>
 
       <EventFilter value={filter} onChange={setFilter} />
 

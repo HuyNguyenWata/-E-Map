@@ -7,10 +7,10 @@ interface Props {
 function EventFilter({ value, onChange }: Props) {
   return (
     <select
+      className="select-input"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       style={{
-        padding: 8,
         marginBottom: 10,
       }}
     >
