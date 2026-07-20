@@ -1,0 +1,115 @@
+.camera-marker {
+
+    width:24px;
+
+    height:24px;
+
+    border-radius:50%;
+
+    border:3px solid white;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:14px;
+
+    box-shadow:
+    0 0 10px rgba(0,0,0,.5);
+
+}
+
+
+/* Camera bình thường */
+
+.camera-online {
+
+    background:#16a34a;
+
+}
+
+
+/* Camera mất kết nối */
+
+.camera-offline {
+
+    background:#6b7280;
+
+}
+
+
+/* Có cảnh báo warning */
+
+.camera-warning {
+
+    background:#eab308;
+
+}
+
+
+/* Critical */
+
+.camera-critical {
+
+    background:#dc2626;
+
+    animation:
+    pulse 1s infinite;
+
+}
+
+
+
+.camera-icon-alert {
+
+    font-size:14px;
+
+}
+
+
+
+@keyframes pulse {
+
+
+    0% {
+
+        transform:scale(1);
+
+    }
+
+
+    50% {
+
+        transform:scale(1.5);
+
+    }
+
+
+    100% {
+
+        transform:scale(1);
+
+    }
+
+}
+.dashboard-item {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    padding:10px 0;
+
+    border-bottom:
+    1px solid #eee;
+
+}
+
+
+.dashboard-item b {
+
+    font-size:18px;
+
+}
