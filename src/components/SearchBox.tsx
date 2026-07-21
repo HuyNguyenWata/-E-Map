@@ -1,34 +1,51 @@
+import type { Camera } from "../types/camera";
+
 interface Props {
   value: string;
   onChange: (value: string) => void;
+  results: Camera[];
+  onPick: (camera: Camera) => void;
 }
 
-function SearchBox({ value, onChange }: Props) {
+function SearchBox({ value, onChange, results, onPick }: Props) {
   return (
-    <div
-      style={{
-        position: "absolute",
-        top: 250,
-        left: 20,
-        zIndex: 1000,
-        background: "#fff",
-        padding: 12,
-        borderRadius: 8,
-        width: 300,
-        boxShadow: "0 2px 10px rgba(0,0,0,.2)",
-      }}
-    >
+    <div className="panel-block" style={{ width: 280, padding: 10 }}>
       <input
         type="text"
-        placeholder="Tìm camera..."
+        className="text-input"
+        placeholder="Tìm vị trí theo tên hoặc địa chỉ camera..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: "100%",
-          padding: 10,
-          fontSize: 16,
-        }}
       />
+
+      {results.length > 0 && (
+        <div
+          className="scroll-area"
+          style={{
+            marginTop: 8,
+            maxHeight: 220,
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
+          {results.map((camera) => (
+            <div
+              key={camera.id}
+              className="card card-clickable"
+              style={{ padding: 8 }}
+              onClick={() => onPick(camera)}
+            >
+              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                {camera.name}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                {camera.address}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

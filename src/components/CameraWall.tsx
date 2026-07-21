@@ -13,6 +13,7 @@ function CameraWall({ cameras, onRemove }: Props) {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
+        gridAutoRows: "minmax(225px, auto)",
         gap: 16,
         padding: 20,
         width: "100%",
@@ -35,7 +36,7 @@ function CameraWall({ cameras, onRemove }: Props) {
         <div
           key={camera.id}
           style={{
-            aspectRatio: "16 / 9",
+            minHeight: 225,
             background: "#000",
             overflow: "hidden",
             borderRadius: "var(--radius-md)",

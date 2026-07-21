@@ -37,6 +37,15 @@ function HeatmapLayer({ cameras, alerts }: Props) {
         blur: 30,
 
         maxZoom: 17,
+
+        // Khớp màu với HeatmapLegend
+        gradient: {
+          0.2: "#3b82f6",
+          0.4: "#22d3ee",
+          0.6: "#a3e635",
+          0.8: "#facc15",
+          1.0: "#ef4444",
+        },
       })
       .addTo(map);
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import useZoneCamera from "../hooks/useZoneCamera";
 import EMapLayout from "../components/EMapLayout";
 
@@ -10,13 +10,18 @@ import CameraWallButton from "../components/CameraWallButton";
 import CameraWall from "../components/CameraWall";
 import RightPanel from "../components/RightPanel";
 import type { ZoneWithCamera } from "../types/zoneWithCamera";
+import type { Camera } from "../types/camera";
 import useCamera from "../hooks/useCamera";
 import useCameraFilter from "../hooks/useCameraFilter";
 import useCameraRealtime from "../hooks/useCameraRealtime";
+import useRadiusCameras from "../hooks/useRadiusCameras";
 import MapToolbar from "../components/MapToolbar";
+import SearchBox from "../components/SearchBox";
+import RadiusControl from "../components/RadiusControl";
+import HeatmapLegend from "../components/HeatmapLegend";
 import useZone from "../hooks/useZone";
 function EMap() {
-  const { cameras } = useCamera();
+  const { cameras, updateCamera } = useCamera();
   const { zones } = useZone(cameras);
 
   const {
@@ -26,7 +31,7 @@ function EMap() {
 
     filtered,
   } = useCameraFilter(cameras);
-  const { alerts } = useCameraRealtime(cameras, () => {});
+  const { alerts } = useCameraRealtime(cameras, updateCamera);
   const [selectedZone, setSelectedZone] = useState<ZoneWithCamera | null>(null);
   const [selectedCamera, setSelectedCamera] = useState(null);
   const {
@@ -42,9 +47,36 @@ function EMap() {
   const [drawZone, setDrawZone] = useState(false);
   const [showCamera, setShowCamera] = useState(true);
 
+  const [radiusMode, setRadiusMode] = useState(false);
+  const [radiusCenter, setRadiusCenter] = useState<[number, number] | null>(
+    null,
+  );
+  const [radiusValue, setRadiusValue] = useState(500);
+  const [radiusKeyword, setRadiusKeyword] = useState("");
+
   const [map, setMap] = useState<any>(null);
   const [showWall, setShowWall] = useState(false);
   const { zoneCameras } = useZoneCamera(filtered, selectedZone);
+  const { camerasInRadius } = useRadiusCameras(
+    cameras,
+    radiusCenter,
+    radiusValue,
+  );
+
+  const radiusSearchResults = useMemo(() => {
+    const keyword = radiusKeyword.trim().toLowerCase();
+
+    if (!keyword) return [];
+
+    return cameras
+      .filter(
+        (camera) =>
+          camera.name.toLowerCase().includes(keyword) ||
+          camera.address.toLowerCase().includes(keyword),
+      )
+      .slice(0, 6);
+  }, [cameras, radiusKeyword]);
+
   const resetMap = () => {
     if (!map) return;
 
@@ -65,6 +97,50 @@ function EMap() {
     console.log("Polygon:", polygon);
 
     alert("Đã tạo polygon gồm " + polygon.length + " điểm");
+  };
+
+  const toggleDrawZone = () => {
+    setDrawZone((prev) => !prev);
+    setRadiusMode(false);
+  };
+
+  const toggleRadiusMode = () => {
+    setRadiusMode((prev) => {
+      const next = !prev;
+
+      if (next) {
+        setDrawZone(false);
+      } else {
+        setRadiusCenter(null);
+        setRadiusKeyword("");
+      }
+
+      return next;
+    });
+  };
+
+  const handleRadiusPick = (lat: number, lng: number) => {
+    setRadiusCenter([lat, lng]);
+    setRadiusKeyword("");
+  };
+
+  const clearRadiusSearch = () => {
+    setRadiusCenter(null);
+    setRadiusKeyword("");
+  };
+
+  const handlePickSearchResult = (camera: Camera) => {
+    setRadiusCenter([camera.latitude, camera.longitude]);
+    setRadiusKeyword(camera.name);
+
+    if (map) {
+      map.flyTo([camera.latitude, camera.longitude], 17, { duration: 1.2 });
+    }
+  };
+
+  const handleSelectRadiusCamera = (camera: Camera) => {
+    setSelectedCamera(camera);
+    addCamera(camera);
   };
   return (
     <EMapLayout
@@ -108,6 +184,10 @@ function EMap() {
             onSelectZone={setSelectedZone}
             drawZone={drawZone}
             onCreateZone={handleCreateZone}
+            radiusMode={radiusMode}
+            radiusCenter={radiusCenter}
+            radiusValue={radiusValue}
+            onRadiusPick={handleRadiusPick}
           />
 
           {/* Overlay trên map */}
@@ -127,9 +207,55 @@ function EMap() {
               fullscreen={fullscreen}
               reset={resetMap}
               drawZone={drawZone}
-              setDrawZone={setDrawZone}
+              onToggleDrawZone={toggleDrawZone}
+              radiusMode={radiusMode}
+              onToggleRadiusMode={toggleRadiusMode}
             />
           </div>
+
+          {radiusMode && (
+            <div
+              style={{
+                position: "absolute",
+                top: 20,
+                left: 20,
+                zIndex: 2000,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              <SearchBox
+                value={radiusKeyword}
+                onChange={setRadiusKeyword}
+                results={radiusSearchResults}
+                onPick={handlePickSearchResult}
+              />
+
+              {radiusCenter && (
+                <RadiusControl
+                  radius={radiusValue}
+                  setRadius={setRadiusValue}
+                  matchedCameras={camerasInRadius}
+                  onSelectCamera={handleSelectRadiusCamera}
+                  onClear={clearRadiusSearch}
+                />
+              )}
+            </div>
+          )}
+
+          {showHeatmap && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: 20,
+                left: 20,
+                zIndex: 1500,
+              }}
+            >
+              <HeatmapLegend />
+            </div>
+          )}
 
           <div
             style={{

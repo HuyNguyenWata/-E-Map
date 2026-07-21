@@ -12,7 +12,11 @@ interface Props {
   reset: () => void;
   drawZone: boolean;
 
-  setDrawZone: React.Dispatch<React.SetStateAction<boolean>>;
+  onToggleDrawZone: () => void;
+
+  radiusMode: boolean;
+
+  onToggleRadiusMode: () => void;
 }
 
 function MapToolbar({
@@ -28,7 +32,9 @@ function MapToolbar({
 
   reset,
   drawZone,
-  setDrawZone,
+  onToggleDrawZone,
+  radiusMode,
+  onToggleRadiusMode,
 }: Props) {
   return (
     <div className="map-toolbar">
@@ -58,10 +64,18 @@ function MapToolbar({
 
       <button
         className={"btn" + (drawZone ? " btn-active" : "")}
-        onClick={() => setDrawZone((prev) => !prev)}
+        onClick={onToggleDrawZone}
         title="Vẽ khu vực mới"
       >
         {drawZone ? "✕ Hủy vẽ" : "✏️ Vẽ Zone"}
+      </button>
+
+      <button
+        className={"btn" + (radiusMode ? " btn-active" : "")}
+        onClick={onToggleRadiusMode}
+        title="Tìm kiếm vị trí & khoanh vùng bán kính giám sát"
+      >
+        {radiusMode ? "✕ Hủy bán kính" : "📍 Bán kính"}
       </button>
     </div>
   );

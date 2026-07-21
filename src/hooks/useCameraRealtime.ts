@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Camera } from "../types/camera";
 
@@ -32,8 +32,11 @@ export default function useCameraRealtime(
   updateCamera: (id: number, data: Partial<Camera>) => void,
 ) {
   const [alerts, setAlerts] = useState<CameraAlert[]>([]);
+  const alertClearTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
 
   useEffect(() => {
+    const clearTimers = alertClearTimers.current;
+
     const timer = setInterval(() => {
       if (!cameras.length) return;
 
@@ -95,11 +98,29 @@ export default function useCameraRealtime(
             ...prev,
           ].slice(0, 50),
         );
+
+        // Cảnh báo tự hết hiệu lực trên bản đồ sau 10s để marker không bị
+        // kẹt đỏ vĩnh viễn khi camera đã hết sự kiện.
+        const existingTimer = clearTimers.get(camera.id);
+
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+        }
+
+        clearTimers.set(
+          camera.id,
+          setTimeout(() => {
+            updateCamera(camera.id, { alert: undefined });
+            clearTimers.delete(camera.id);
+          }, 10000),
+        );
       }
     }, 3000);
 
     return () => {
       clearInterval(timer);
+      clearTimers.forEach((timeoutId) => clearTimeout(timeoutId));
+      clearTimers.clear();
     };
   }, [cameras, updateCamera]);
 

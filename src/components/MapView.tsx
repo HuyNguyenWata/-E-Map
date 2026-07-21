@@ -3,6 +3,8 @@ import { MapContainer, TileLayer } from "react-leaflet";
 import CameraCluster from "./CameraCluster";
 import HeatmapLayer from "./HeatmapLayer";
 import MapController from "./MapController";
+import MapClickHandler from "./MapClickHandler";
+import ZoneCircle from "./ZoneCircle";
 import ZoneLayer from "./ZoneLayer";
 import type { Camera } from "../types/camera";
 import type { CameraAlert } from "../types/alert";
@@ -23,6 +25,11 @@ interface Props {
   drawZone: boolean;
 
   onCreateZone: (polygon: [number, number][]) => void;
+
+  radiusMode: boolean;
+  radiusCenter: [number, number] | null;
+  radiusValue: number;
+  onRadiusPick: (lat: number, lng: number) => void;
 }
 
 function MapView({
@@ -37,6 +44,10 @@ function MapView({
   onSelectZone,
   drawZone,
   onCreateZone,
+  radiusMode,
+  radiusCenter,
+  radiusValue,
+  onRadiusPick,
 }: Props) {
   return (
     <MapContainer
@@ -56,6 +67,16 @@ function MapView({
         selectedZoneId={selectedZone}
         onSelect={onSelectZone}
       />
+
+      {radiusMode && !drawZone && (
+        <MapClickHandler
+          onClick={(lat, lng) => onRadiusPick(lat, lng)}
+        />
+      )}
+
+      {radiusCenter && (
+        <ZoneCircle center={radiusCenter} radius={radiusValue} />
+      )}
 
       {showHeatmap && <HeatmapLayer cameras={cameras} alerts={alerts} />}
 
