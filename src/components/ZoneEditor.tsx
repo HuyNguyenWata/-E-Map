@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { FeatureGroup } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
 import L from "leaflet";
@@ -8,6 +9,22 @@ interface Props {
 }
 
 function ZoneEditor({ enabled, onCreated }: Props) {
+  const handleCreated = useCallback(
+    (event: L.DrawEvents.Created) => {
+      const layer = event.layer as L.Polygon;
+
+      const latLngs = layer.getLatLngs()[0] as L.LatLng[];
+
+      const polygon = latLngs.map((point) => [point.lat, point.lng]) as [
+        number,
+        number,
+      ][];
+
+      onCreated(polygon);
+    },
+    [onCreated],
+  );
+
   if (!enabled) {
     return null;
   }
@@ -15,7 +32,7 @@ function ZoneEditor({ enabled, onCreated }: Props) {
   return (
     <FeatureGroup>
       <EditControl
-        position="topright"
+        position="topleft"
         draw={{
           rectangle: false,
           circle: false,
@@ -28,18 +45,7 @@ function ZoneEditor({ enabled, onCreated }: Props) {
           edit: false,
           remove: false,
         }}
-        onCreated={(event) => {
-          const layer = event.layer as L.Polygon;
-
-          const latLngs = layer.getLatLngs()[0] as L.LatLng[];
-
-          const polygon = latLngs.map((point) => [point.lat, point.lng]) as [
-            number,
-            number,
-          ][];
-
-          onCreated(polygon);
-        }}
+        onCreated={handleCreated}
       />
     </FeatureGroup>
   );

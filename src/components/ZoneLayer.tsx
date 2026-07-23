@@ -1,10 +1,5 @@
 import { Polygon, Popup, Tooltip } from "react-leaflet";
-import type { Zone } from "../types/zone";
-import type { Camera } from "../types/camera";
-
-interface ZoneWithCamera extends Zone {
-  cameras?: Camera[];
-}
+import type { ZoneWithCamera } from "../types/zoneWithCamera";
 
 interface Props {
   zones: ZoneWithCamera[];

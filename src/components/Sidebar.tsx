@@ -1,11 +1,15 @@
 import type { Camera } from "../types/camera";
+import { useAuth } from "../auth/AuthContext";
 
 interface Props {
   cameras: Camera[];
   onSelect: (camera: Camera) => void;
+  onAddCamera: () => void;
 }
 
-function Sidebar({ cameras, onSelect }: Props) {
+function Sidebar({ cameras, onSelect, onAddCamera }: Props) {
+  const { user } = useAuth();
+
   return (
     <div
       style={{
@@ -18,9 +22,24 @@ function Sidebar({ cameras, onSelect }: Props) {
         gap: 8,
       }}
     >
-      <h3 className="panel-title" style={{ marginBottom: 2 }}>
-        Danh sách Camera ({cameras.length})
-      </h3>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 2,
+        }}
+      >
+        <h3 className="panel-title" style={{ margin: 0 }}>
+          Danh sách Camera ({cameras.length})
+        </h3>
+
+        {user?.role === "admin" && (
+          <button className="btn btn-sm btn-primary" onClick={onAddCamera}>
+            + Thêm
+          </button>
+        )}
+      </div>
 
       {cameras.length === 0 && (
         <div className="empty-state">Không tìm thấy camera phù hợp</div>
@@ -64,6 +83,19 @@ function Sidebar({ cameras, onSelect }: Props) {
             }}
           >
             {camera.address}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              fontSize: 11,
+              color: "var(--text-faint)",
+              marginTop: 2,
+            }}
+          >
+            <span>Signal {camera.signal}%</span>
+            <span>{camera.lastSeen}</span>
           </div>
         </div>
       ))}

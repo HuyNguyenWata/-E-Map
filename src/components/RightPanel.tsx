@@ -10,6 +10,10 @@ interface Props {
   alerts: CameraAlert[];
 
   close: () => void;
+
+  onEdit: (camera: Camera) => void;
+
+  onDelete: (camera: Camera) => void;
 }
 
 function RightPanel({
@@ -18,6 +22,10 @@ function RightPanel({
   alerts,
 
   close,
+
+  onEdit,
+
+  onDelete,
 }: Props) {
   if (!camera) {
     return (
@@ -42,7 +50,15 @@ function RightPanel({
     );
   }
 
-  return <CameraDetailPanel camera={camera} alerts={alerts} onClose={close} />;
+  return (
+    <CameraDetailPanel
+      camera={camera}
+      alerts={alerts}
+      onClose={close}
+      onEdit={onEdit}
+      onDelete={onDelete}
+    />
+  );
 }
 
 export default RightPanel;

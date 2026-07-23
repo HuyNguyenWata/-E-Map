@@ -1,4 +1,5 @@
 import type { Camera } from "../types/camera";
+import HlsVideo from "./HlsVideo";
 
 interface Props {
   camera: Camera;
@@ -48,11 +49,10 @@ function CameraVideoCard({ camera, onRemove }: Props) {
         </button>
       </div>
 
-      <video
+      <HlsVideo
         src={camera.streamUrl}
         autoPlay
         muted
-        playsInline
         style={{
           width: "100%",
           flex: 1,

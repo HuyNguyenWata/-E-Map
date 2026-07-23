@@ -1,4 +1,4 @@
-export type AlertType = "fire" | "smoke" | "person" | "vehicle" | "offline";
+export type AlertType = "fire" | "smoke" | "person" | "vehicle" | "offline" | "crowd" | "weapon";
 
 export type AlertSeverity = "info" | "warning" | "critical";
 

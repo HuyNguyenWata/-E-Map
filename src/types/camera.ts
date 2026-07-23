@@ -30,3 +30,12 @@ export interface Camera {
   // Camera thuộc zone nào
   zoneId?: number;
 }
+
+export interface CreateCameraInput {
+  name: string;
+  latitude: number;
+  longitude: number;
+  address: string;
+  streamUrl: string;
+  zoneId?: number | null;
+}

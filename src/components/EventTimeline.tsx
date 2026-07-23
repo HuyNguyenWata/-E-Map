@@ -34,7 +34,11 @@ function EventTimeline({ events }: Props) {
                   ? "👤"
                   : event.type === "vehicle"
                     ? "🚗"
-                    : "⚠️"}
+                    : event.type === "crowd"
+                      ? "👥"
+                      : event.type === "weapon"
+                        ? "🔫"
+                        : "⚠️"}
             </div>
 
             <div>

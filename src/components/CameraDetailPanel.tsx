@@ -1,17 +1,26 @@
+import { useEffect, useState } from "react";
 import type { Camera } from "../types/camera";
 import type { CameraAlert } from "../types/alert";
+import type { RecordingSegment } from "../types/recording";
 import EventTimeline from "./EventTimeline";
 
 import EventFilter from "./EventFilter";
 
 import useCameraEvents from "../hooks/useCameraEvents";
-import { useState } from "react";
+import useCameraRecordings from "../hooks/useCameraRecordings";
+import HlsVideo from "./HlsVideo";
+import RecordingList from "./RecordingList";
+import { useAuth } from "../auth/AuthContext";
 interface Props {
   camera: Camera | null;
 
   alerts: CameraAlert[];
 
   onClose: () => void;
+
+  onEdit: (camera: Camera) => void;
+
+  onDelete: (camera: Camera) => void;
 }
 
 function CameraDetailPanel({
@@ -20,13 +29,26 @@ function CameraDetailPanel({
   alerts,
 
   onClose,
+
+  onEdit,
+
+  onDelete,
 }: Props) {
+  const { user } = useAuth();
+  const [selectedRecording, setSelectedRecording] = useState<RecordingSegment | null>(null);
+  const { recordings, loading: recordingsLoading } = useCameraRecordings(camera?.id ?? null);
+
+  // Đổi camera thì bỏ chọn bản ghi cũ, quay về xem trực tiếp.
+  useEffect(() => {
+    setSelectedRecording(null);
+  }, [camera?.id]);
+
+  const { events, filter, setFilter } = useCameraEvents(camera?.id ?? null, alerts.length);
+
   if (!camera) {
     return null;
   }
 
-  const { events, filter, setFilter } = useCameraEvents(camera?.id ?? null);
-  const [currentEvent, setCurrentEvent] = useState(null);
   return (
     <div
       style={{
@@ -59,9 +81,21 @@ function CameraDetailPanel({
           </span>
         </div>
 
-        <button className="btn btn-icon btn-ghost" onClick={onClose} title="Đóng">
-          ✕
-        </button>
+        <div style={{ display: "flex", gap: 6 }}>
+          {user?.role === "admin" && (
+            <>
+              <button className="btn btn-sm" onClick={() => onEdit(camera)}>
+                ✏️ Sửa
+              </button>
+              <button className="btn btn-sm btn-danger" onClick={() => onDelete(camera)}>
+                🗑️ Xoá
+              </button>
+            </>
+          )}
+          <button className="btn btn-icon btn-ghost" onClick={onClose} title="Đóng">
+            ✕
+          </button>
+        </div>
       </div>
 
       <p
@@ -74,43 +108,72 @@ function CameraDetailPanel({
         {camera.address}
       </p>
 
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          marginTop: 8,
+          fontSize: 12,
+          color: "var(--text-muted)",
+        }}
+      >
+        <span>
+          Signal: <b style={{ color: "var(--text)" }}>{camera.signal}%</b>
+        </span>
+        <span>Last seen: {camera.lastSeen}</span>
+      </div>
+
       <hr />
 
-      <h3>Live Camera</h3>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <h3 style={{ margin: 0 }}>
+          {selectedRecording ? "📼 Đang xem lại" : "🔴 Live Camera"}
+        </h3>
 
-      <video
-        width="100%"
+        {selectedRecording && (
+          <button className="btn btn-sm" onClick={() => setSelectedRecording(null)}>
+            Về trực tiếp
+          </button>
+        )}
+      </div>
+
+      <HlsVideo
+        src={selectedRecording?.playbackUrl ?? camera.streamUrl}
         controls
         muted
+        autoPlay
         style={{
+          width: "100%",
           marginTop: 8,
           borderRadius: "var(--radius-md)",
           background: "#000",
         }}
-      >
-        <source src={camera.streamUrl} type="video/mp4" />
-      </video>
+      />
 
       <hr />
 
-      <h3>Lịch sử cảnh báo</h3>
-      <p
-        style={{
-          fontSize: 12,
-          color: "var(--text-faint)",
-          marginTop: 6,
-        }}
-      >
-        Chưa có dữ liệu
-      </p>
+      <h3 style={{ marginBottom: 10 }}>🎞️ Ghi hình</h3>
+
+      <RecordingList
+        recordings={recordings}
+        loading={recordingsLoading}
+        selectedUrl={selectedRecording?.playbackUrl ?? null}
+        onSelect={setSelectedRecording}
+      />
 
       <hr />
 
-      <h3 style={{ marginBottom: 10 }}>Lịch sử sự kiện</h3>
+      <h3 style={{ marginBottom: 10 }}>Lịch sử cảnh báo</h3>
 
       <EventFilter value={filter} onChange={setFilter} />
 
-      <EventTimeline events={events} onSelect={setCurrentEvent} />
+      <EventTimeline events={events} />
     </div>
   );
 }

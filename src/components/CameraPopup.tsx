@@ -1,4 +1,5 @@
 import type { Camera } from "../types/camera";
+import HlsVideo from "./HlsVideo";
 
 interface Props {
   camera: Camera;
@@ -50,9 +51,7 @@ function CameraPopup({ camera }: Props) {
         </div>
       )}
 
-      <video width="100%" controls muted>
-        <source src={camera.streamUrl} type="video/mp4" />
-      </video>
+      <HlsVideo src={camera.streamUrl} controls muted style={{ width: "100%" }} />
     </div>
   );
 }

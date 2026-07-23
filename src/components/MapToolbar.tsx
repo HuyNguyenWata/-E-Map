@@ -1,3 +1,5 @@
+import { useAuth } from "../auth/AuthContext";
+
 interface Props {
   showHeatmap: boolean;
 
@@ -17,6 +19,12 @@ interface Props {
   radiusMode: boolean;
 
   onToggleRadiusMode: () => void;
+
+  onOpenAnpr: () => void;
+
+  onOpenFace: () => void;
+
+  onOpenBehavior: () => void;
 }
 
 function MapToolbar({
@@ -35,7 +43,12 @@ function MapToolbar({
   onToggleDrawZone,
   radiusMode,
   onToggleRadiusMode,
+  onOpenAnpr,
+  onOpenFace,
+  onOpenBehavior,
 }: Props) {
+  const { user } = useAuth();
+
   return (
     <div className="map-toolbar">
       <button
@@ -62,13 +75,15 @@ function MapToolbar({
         ⛶ Fullscreen
       </button>
 
-      <button
-        className={"btn" + (drawZone ? " btn-active" : "")}
-        onClick={onToggleDrawZone}
-        title="Vẽ khu vực mới"
-      >
-        {drawZone ? "✕ Hủy vẽ" : "✏️ Vẽ Zone"}
-      </button>
+      {user?.role === "admin" && (
+        <button
+          className={"btn" + (drawZone ? " btn-active" : "")}
+          onClick={onToggleDrawZone}
+          title="Vẽ khu vực mới"
+        >
+          {drawZone ? "✕ Hủy vẽ" : "✏️ Vẽ Zone"}
+        </button>
+      )}
 
       <button
         className={"btn" + (radiusMode ? " btn-active" : "")}
@@ -76,6 +91,18 @@ function MapToolbar({
         title="Tìm kiếm vị trí & khoanh vùng bán kính giám sát"
       >
         {radiusMode ? "✕ Hủy bán kính" : "📍 Bán kính"}
+      </button>
+
+      <button className="btn" onClick={onOpenAnpr} title="Nhận dạng biển số xe (ANPR)">
+        🚗 ANPR
+      </button>
+
+      <button className="btn" onClick={onOpenFace} title="Nhận dạng khuôn mặt & điểm danh">
+        🧑 Khuôn mặt
+      </button>
+
+      <button className="btn" onClick={onOpenBehavior} title="Phát hiện đám đông & vũ khí">
+        🏃 Hành vi
       </button>
     </div>
   );

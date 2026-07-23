@@ -14,7 +14,7 @@ function CameraCluster({ cameras, onSelect }: Props) {
   return (
     <MarkerClusterGroup chunkedLoading>
       {cameras.map((camera) => (
-        <CameraMarker camera={camera} onSelect={onSelect} />
+        <CameraMarker key={camera.id} camera={camera} onSelect={onSelect} />
       ))}
     </MarkerClusterGroup>
   );
