@@ -1,32 +1,43 @@
-# React + TypeScript + Vite
+# eMap — VMS Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Frontend React + TypeScript + Vite cho hệ thống VMS: bản đồ camera (Leaflet/MapLibre), xem live/playback (HLS), quản lý zone, xem cảnh báo ANPR/khuôn mặt/hành vi theo thời gian thực (SignalR).
 
-Currently, two official plugins are available:
+## Yêu cầu
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 18+
+- Backend ([wata-backend](../wata-backend)) đang chạy tại `http://localhost:5080` (hoặc chỉnh `.env`)
 
-## React Compiler
+## Cài đặt & chạy
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+cp .env.example .env   # chỉnh URL nếu backend/service không chạy ở localhost
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Mặc định chạy tại `http://localhost:5173`. Đăng nhập bằng tài khoản admin mặc định `admin / admin123` (seed từ backend, đổi khi triển khai thật).
+
+## Scripts
+
+| Lệnh | Ý nghĩa |
+|---|---|
+| `npm run dev` | Chạy dev server (HMR) |
+| `npm run build` | Type-check (`tsc -b`) rồi build production vào `dist/` |
+| `npm run preview` | Preview bản build production |
+| `npm run lint` | Lint bằng oxlint |
+
+## Biến môi trường (`.env`)
+
+| Biến | Mặc định | Ý nghĩa |
+|---|---|---|
+| `VITE_API_BASE_URL` | `http://localhost:5080` | URL backend .NET (VMS.Api) |
+| `VITE_ANPR_SERVICE_URL` | `http://localhost:8001` | URL service nhận diện biển số |
+| `VITE_FACE_SERVICE_URL` | `http://localhost:8002` | URL service nhận diện khuôn mặt |
+| `VITE_BEHAVIOR_SERVICE_URL` | `http://localhost:8003` | URL service phát hiện đám đông/vũ khí |
+
+## Các service liên quan
+
+- [wata-backend](../wata-backend) — API chính, xác thực, SignalR
+- [wata-anpr-service](../wata-anpr-service) — nhận diện biển số
+- [wata-face-service](../wata-face-service) — nhận diện khuôn mặt
+- [wata-behavior-service](../wata-behavior-service) — đếm đám đông, phát hiện vũ khí
