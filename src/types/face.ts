@@ -13,7 +13,13 @@ export interface FaceDetection {
   similarity: number;
   cameraId: number | null;
   cameraName: string | null;
+  isLive: boolean | null;
+  livenessScore: number | null;
   detectedAt: string;
+}
+
+export interface FaceSettings {
+  antiSpoofingEnabled: boolean;
 }
 
 export interface AttendanceDay {

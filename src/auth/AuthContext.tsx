@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { login as loginApi } from "../api/client";
 import { getToken, setToken, setUnauthorizedHandler } from "../api/authToken";
-import type { AuthUser } from "../types/auth";
+import type { AuthUser, Permission } from "../types/auth";
 
 const USER_STORAGE_KEY = "vms_user";
 
@@ -10,6 +10,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  hasPermission: (permission: Permission) => boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -21,7 +22,12 @@ function readStoredUser(): AuthUser | null {
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as AuthUser;
+    const parsed = JSON.parse(raw) as AuthUser;
+    // Dữ liệu cũ/hỏng trong localStorage (vd. từ bản trước khi có field
+    // permissions) không được để lọt xuống dưới — sẽ làm cả app crash trắng
+    // màn hình vì hasPermission gọi .includes() trên undefined.
+    if (!parsed || !Array.isArray(parsed.permissions)) return null;
+    return parsed;
   } catch {
     return null;
   }
@@ -41,7 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     const res = await loginApi(username, password);
-    const authUser: AuthUser = { username: res.username, role: res.role };
+    const authUser: AuthUser = {
+      username: res.username,
+      roleName: res.roleName,
+      permissions: res.permissions,
+    };
 
     setToken(res.token);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authUser));
@@ -54,8 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const hasPermission = (permission: Permission) =>
+    Array.isArray(user?.permissions) && user.permissions.includes(permission);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, login, logout, hasPermission }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

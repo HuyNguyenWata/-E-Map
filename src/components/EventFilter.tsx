@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 interface Props {
   value: string;
 
@@ -5,6 +7,8 @@ interface Props {
 }
 
 function EventFilter({ value, onChange }: Props) {
+  const { t } = useTranslation();
+
   return (
     <select
       className="select-input"
@@ -14,7 +18,7 @@ function EventFilter({ value, onChange }: Props) {
         marginBottom: 10,
       }}
     >
-      <option value="all">Tất cả</option>
+      <option value="all">{t("filter.all")}</option>
 
       <option value="fire">🔥 Fire</option>
 

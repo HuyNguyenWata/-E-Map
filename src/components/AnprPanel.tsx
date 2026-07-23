@@ -5,6 +5,7 @@ import { detectPlatesInImage } from "../api/anprService";
 import type { AnprDetectionResult } from "../api/anprService";
 import type { PlateListType } from "../types/anpr";
 import type { Zone } from "../types/zone";
+import type { Camera } from "../types/camera";
 import type { RoutePoint } from "./PlateRouteLayer";
 import { useAuth } from "../auth/AuthContext";
 
@@ -13,6 +14,7 @@ interface Props {
   onLocate: (lat: number, lng: number) => void;
   onShowRoute: (plateNumber: string, points: RoutePoint[]) => void;
   zones: Zone[];
+  cameras: Camera[];
   onToggleZoneWatch: (zoneId: number, enabled: boolean) => Promise<unknown>;
 }
 
@@ -26,9 +28,9 @@ function matchBadge(matched: PlateListType | null) {
   return <span className="badge badge-offline">Không khớp</span>;
 }
 
-function AnprPanel({ onClose, onLocate, onShowRoute, zones, onToggleZoneWatch }: Props) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+function AnprPanel({ onClose, onLocate, onShowRoute, zones, cameras, onToggleZoneWatch }: Props) {
+  const { hasPermission } = useAuth();
+  const isAdmin = hasPermission("ManageAnprList");
 
   const { entries, loading: entriesLoading, addEntry, removeEntry } = usePlateEntries();
   const [zoneWatchPending, setZoneWatchPending] = useState<number | null>(null);
@@ -52,6 +54,7 @@ function AnprPanel({ onClose, onLocate, onShowRoute, zones, onToggleZoneWatch }:
   const [newDescription, setNewDescription] = useState("");
   const [entryError, setEntryError] = useState<string | null>(null);
 
+  const [testCameraId, setTestCameraId] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
@@ -107,7 +110,8 @@ function AnprPanel({ onClose, onLocate, onShowRoute, zones, onToggleZoneWatch }:
     setDetectError(null);
 
     try {
-      const results = await detectPlatesInImage(selectedFile);
+      const cameraId = testCameraId ? Number(testCameraId) : undefined;
+      const results = await detectPlatesInImage(selectedFile, cameraId);
       setLastResults(results);
       refreshDetections();
     } catch (err) {
@@ -299,6 +303,28 @@ function AnprPanel({ onClose, onLocate, onShowRoute, zones, onToggleZoneWatch }:
           <h3 className="panel-title">📷 Nhận diện từ ảnh</h3>
 
           <div className="panel-block" style={{ padding: 14, marginBottom: 14 }}>
+            <span className="field-label">Gắn với camera (tuỳ chọn)</span>
+            <select
+              className="select-input"
+              value={testCameraId}
+              onChange={(e) => setTestCameraId(e.target.value)}
+              style={{ marginBottom: 10 }}
+            >
+              <option value="">-- Không gắn camera (chỉ test model) --</option>
+              {cameras.map((cam) => (
+                <option key={cam.id} value={cam.id}>
+                  {cam.name}
+                </option>
+              ))}
+            </select>
+
+            {!testCameraId && (
+              <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -6, marginBottom: 10 }}>
+                Không gắn camera thì kết quả chỉ để tham khảo — sẽ KHÔNG tạo cảnh báo và
+                KHÔNG gửi email dù khớp danh sách đen, vì cảnh báo luôn phải gắn với 1 camera cụ thể.
+              </p>
+            )}
+
             <input
               type="file"
               accept="image/*"

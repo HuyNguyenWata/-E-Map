@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/AuthContext";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 function LoginPage() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -16,7 +19,7 @@ function LoginPage() {
     try {
       await login(username, password);
     } catch {
-      setError("Sai tên đăng nhập hoặc mật khẩu");
+      setError(t("login.error"));
     } finally {
       setSubmitting(false);
     }
@@ -27,23 +30,29 @@ function LoginPage() {
       style={{
         minHeight: "100vh",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
+        gap: 16,
         background: "var(--bg-app)",
       }}
     >
+      <div style={{ width: 340, display: "flex", justifyContent: "flex-end" }}>
+        <LanguageSwitcher />
+      </div>
+
       <form
         onSubmit={handleSubmit}
         className="panel-block"
         style={{ width: 340, padding: 28, boxShadow: "var(--shadow-lg)" }}
       >
-        <h2 style={{ marginBottom: 4 }}>📹 VMS Login</h2>
+        <h2 style={{ marginBottom: 4 }}>📹 {t("login.title")}</h2>
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>
-          Đăng nhập để tiếp tục
+          {t("login.subtitle")}
         </p>
 
         <div style={{ marginBottom: 14 }}>
-          <span className="field-label">Tên đăng nhập</span>
+          <span className="field-label">{t("login.username")}</span>
           <input
             className="text-input"
             value={username}
@@ -53,7 +62,7 @@ function LoginPage() {
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <span className="field-label">Mật khẩu</span>
+          <span className="field-label">{t("login.password")}</span>
           <input
             className="text-input"
             type="password"
@@ -67,7 +76,7 @@ function LoginPage() {
         )}
 
         <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
-          {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
+          {submitting ? t("login.submitting") : t("login.submit")}
         </button>
       </form>
     </div>

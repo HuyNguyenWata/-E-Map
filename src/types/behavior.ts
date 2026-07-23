@@ -1,4 +1,4 @@
-export type BehaviorType = "crowd" | "weapon";
+export type BehaviorType = "crowd" | "weapon" | "litter";
 
 export interface BehaviorSettings {
   crowdThreshold: number;

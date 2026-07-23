@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import CameraDetailPanel from "./CameraDetailPanel";
 
 import type { Camera } from "../types/camera";
@@ -14,6 +15,9 @@ interface Props {
   onEdit: (camera: Camera) => void;
 
   onDelete: (camera: Camera) => void;
+
+  favoriteIds: Set<number>;
+  onToggleFavorite: (cameraId: number) => void;
 }
 
 function RightPanel({
@@ -26,7 +30,12 @@ function RightPanel({
   onEdit,
 
   onDelete,
+
+  favoriteIds,
+  onToggleFavorite,
 }: Props) {
+  const { t } = useTranslation();
+
   if (!camera) {
     return (
       <div
@@ -45,7 +54,7 @@ function RightPanel({
         }}
       >
         <div style={{ fontSize: 32 }}>📷</div>
-        <div style={{ fontSize: 13 }}>Chọn một camera để xem chi tiết</div>
+        <div style={{ fontSize: 13 }}>{t("cameraDetail.selectPrompt")}</div>
       </div>
     );
   }
@@ -57,6 +66,8 @@ function RightPanel({
       onClose={close}
       onEdit={onEdit}
       onDelete={onDelete}
+      isFavorite={favoriteIds.has(camera.id)}
+      onToggleFavorite={() => onToggleFavorite(camera.id)}
     />
   );
 }

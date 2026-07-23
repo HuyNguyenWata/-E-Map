@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/AuthContext";
 
 interface Props {
@@ -47,62 +48,63 @@ function MapToolbar({
   onOpenFace,
   onOpenBehavior,
 }: Props) {
-  const { user } = useAuth();
+  const { t } = useTranslation();
+  const { hasPermission } = useAuth();
 
   return (
     <div className="map-toolbar">
       <button
         className={"btn" + (showHeatmap ? " btn-active" : "")}
         onClick={() => setShowHeatmap(!showHeatmap)}
-        title="Bật/tắt lớp nhiệt"
+        title={t("mapToolbar.heatmapTitle")}
       >
-        🔥 Heatmap
+        {t("mapToolbar.heatmap")}
       </button>
 
       <button
         className={"btn" + (showCamera ? " btn-active" : "")}
         onClick={() => setShowCamera(!showCamera)}
-        title="Bật/tắt camera"
+        title={t("mapToolbar.cameraTitle")}
       >
-        📷 Camera
+        {t("mapToolbar.camera")}
       </button>
 
-      <button className="btn" onClick={reset} title="Đưa bản đồ về vị trí gốc">
-        🎯 Reset
+      <button className="btn" onClick={reset} title={t("mapToolbar.resetTitle")}>
+        {t("mapToolbar.reset")}
       </button>
 
-      <button className="btn" onClick={fullscreen} title="Toàn màn hình">
-        ⛶ Fullscreen
+      <button className="btn" onClick={fullscreen} title={t("mapToolbar.fullscreenTitle")}>
+        {t("mapToolbar.fullscreen")}
       </button>
 
-      {user?.role === "admin" && (
+      {hasPermission("ManageZones") && (
         <button
           className={"btn" + (drawZone ? " btn-active" : "")}
           onClick={onToggleDrawZone}
-          title="Vẽ khu vực mới"
+          title={t("mapToolbar.drawZoneTitle")}
         >
-          {drawZone ? "✕ Hủy vẽ" : "✏️ Vẽ Zone"}
+          {drawZone ? t("mapToolbar.cancelDrawZone") : t("mapToolbar.drawZone")}
         </button>
       )}
 
       <button
         className={"btn" + (radiusMode ? " btn-active" : "")}
         onClick={onToggleRadiusMode}
-        title="Tìm kiếm vị trí & khoanh vùng bán kính giám sát"
+        title={t("mapToolbar.radiusTitle")}
       >
-        {radiusMode ? "✕ Hủy bán kính" : "📍 Bán kính"}
+        {radiusMode ? t("mapToolbar.cancelRadius") : t("mapToolbar.radius")}
       </button>
 
-      <button className="btn" onClick={onOpenAnpr} title="Nhận dạng biển số xe (ANPR)">
-        🚗 ANPR
+      <button className="btn" onClick={onOpenAnpr} title={t("mapToolbar.anprTitle")}>
+        {t("mapToolbar.anpr")}
       </button>
 
-      <button className="btn" onClick={onOpenFace} title="Nhận dạng khuôn mặt & điểm danh">
-        🧑 Khuôn mặt
+      <button className="btn" onClick={onOpenFace} title={t("mapToolbar.faceTitle")}>
+        {t("mapToolbar.face")}
       </button>
 
-      <button className="btn" onClick={onOpenBehavior} title="Phát hiện đám đông & vũ khí">
-        🏃 Hành vi
+      <button className="btn" onClick={onOpenBehavior} title={t("mapToolbar.behaviorTitle")}>
+        {t("mapToolbar.behavior")}
       </button>
     </div>
   );

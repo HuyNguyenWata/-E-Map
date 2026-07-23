@@ -1,5 +1,7 @@
+import { useTranslation } from "react-i18next";
 import Dashboard from "./Dashboard";
 import Sidebar from "./Sidebar";
+import LanguageSwitcher from "./LanguageSwitcher";
 import { useAuth } from "../auth/AuthContext";
 import FilterPanel from "./FilterPanel";
 import ZoneList from "./ZoneList";
@@ -39,6 +41,9 @@ interface Props {
   onSelectZone: (zone: ZoneWithCamera) => void;
   onClear: () => void;
   onAddCamera: () => void;
+  onManageUsers: () => void;
+  favoriteIds: Set<number>;
+  onToggleFavorite: (cameraId: number) => void;
 }
 
 function LeftPanel({
@@ -56,8 +61,12 @@ function LeftPanel({
   onSelectZone,
   onClear,
   onAddCamera,
+  onManageUsers,
+  favoriteIds,
+  onToggleFavorite,
 }: Props) {
-  const { user, logout } = useAuth();
+  const { t } = useTranslation();
+  const { user, logout, hasPermission } = useAuth();
 
   return (
     <div
@@ -89,16 +98,26 @@ function LeftPanel({
         <div style={{ fontSize: 13 }}>
           👤 <b>{user?.username}</b>{" "}
           <span
-            className={"badge " + (user?.role === "admin" ? "badge-online" : "badge-offline")}
+            className={"badge " + (user?.roleName === "Admin" ? "badge-online" : "badge-offline")}
             style={{ marginLeft: 4 }}
           >
-            {user?.role === "admin" ? "Admin" : "Viewer"}
+            {user?.roleName}
           </span>
         </div>
 
-        <button className="btn btn-sm" onClick={logout}>
-          Đăng xuất
-        </button>
+        <div style={{ display: "flex", gap: 6 }}>
+          <LanguageSwitcher />
+
+          {hasPermission("ManageUsers") && (
+            <button className="btn btn-sm" onClick={onManageUsers} title={t("leftPanel.manageUsersTitle")}>
+              {t("leftPanel.manageUsers")}
+            </button>
+          )}
+
+          <button className="btn btn-sm" onClick={logout}>
+            {t("leftPanel.logout")}
+          </button>
+        </div>
       </div>
 
       {/* Toàn bộ sidebar cuộn như MỘT vùng duy nhất — tách 2 vùng cuộn riêng
@@ -131,7 +150,7 @@ function LeftPanel({
           </div>
 
           <button className="btn btn-block" onClick={() => onClear()}>
-            Hiển thị tất cả
+            {t("zoneList.showAll")}
           </button>
           <ZoneList
             zones={zones}
@@ -160,7 +179,13 @@ function LeftPanel({
           />
         </div>
 
-        <Sidebar cameras={filtered} onSelect={onSelect} onAddCamera={onAddCamera} />
+        <Sidebar
+          cameras={filtered}
+          onSelect={onSelect}
+          onAddCamera={onAddCamera}
+          favoriteIds={favoriteIds}
+          onToggleFavorite={onToggleFavorite}
+        />
       </div>
     </div>
   );

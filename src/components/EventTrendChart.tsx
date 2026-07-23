@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { AlertStats, DailyAlertStat } from "../types/alertStats";
 
 interface Props {
@@ -17,12 +18,13 @@ function formatDayLabel(isoDate: string) {
 }
 
 function EventTrendChart({ stats }: Props) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState<{ day: DailyAlertStat; x: number } | null>(null);
 
   if (!stats) {
     return (
       <div style={{ fontSize: 12, color: "var(--text-faint)", padding: "8px 0" }}>
-        Đang tải dữ liệu...
+        {t("eventTrend.loading")}
       </div>
     );
   }
@@ -44,7 +46,7 @@ function EventTrendChart({ stats }: Props) {
         }}
       >
         <span className="panel-title" style={{ margin: 0 }}>
-          📈 Xu hướng sự kiện (7 ngày)
+          {t("eventTrend.title")}
         </span>
 
         {trend !== null && (
@@ -130,7 +132,7 @@ function EventTrendChart({ stats }: Props) {
             fontSize: 12,
           }}
         >
-          <b>{formatDayLabel(hovered.day.date)}</b> · Tổng {hovered.day.total} sự kiện — Info {hovered.day.info}, Warning {hovered.day.warning}, Critical {hovered.day.critical}
+          <b>{formatDayLabel(hovered.day.date)}</b> · {t("eventTrend.total")} {hovered.day.total} {t("eventTrend.events")} — Info {hovered.day.info}, Warning {hovered.day.warning}, Critical {hovered.day.critical}
         </div>
       )}
 

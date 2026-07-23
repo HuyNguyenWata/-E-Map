@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { CameraAlert } from "../types/alert";
 
 interface Props {
@@ -5,12 +6,14 @@ interface Props {
 }
 
 function EventTimeline({ events }: Props) {
+  const { t } = useTranslation();
+
   return (
     <div>
       <h3 style={{ marginBottom: 8 }}>📅 Event Timeline</h3>
 
       {events.length === 0 ? (
-        <div className="empty-state">Không có sự kiện</div>
+        <div className="empty-state">{t("cameraDetail.noEvents")}</div>
       ) : (
         events.map((event) => (
           <div
@@ -38,7 +41,11 @@ function EventTimeline({ events }: Props) {
                       ? "👥"
                       : event.type === "weapon"
                         ? "🔫"
-                        : "⚠️"}
+                        : event.type === "spoof"
+                          ? "🎭"
+                          : event.type === "litter"
+                            ? "🗑️"
+                            : "⚠️"}
             </div>
 
             <div>

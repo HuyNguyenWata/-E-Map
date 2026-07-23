@@ -1,21 +1,24 @@
 import { useState } from "react";
 import useBehaviorSettings from "../hooks/useBehaviorSettings";
 import useBehaviorDetections from "../hooks/useBehaviorDetections";
-import { detectCrowd, detectWeapon } from "../api/behaviorService";
-import type { CrowdDetectResult, WeaponDetectResult } from "../api/behaviorService";
+import { detectCrowd, detectWeapon, detectLitter } from "../api/behaviorService";
+import type { CrowdDetectResult, WeaponDetectResult, LitterDetectResult } from "../api/behaviorService";
 import { useAuth } from "../auth/AuthContext";
+import type { Camera } from "../types/camera";
 
 interface Props {
   onClose: () => void;
+  cameras: Camera[];
 }
 
 type LastResult =
   | { kind: "crowd"; result: CrowdDetectResult }
-  | { kind: "weapon"; result: WeaponDetectResult };
+  | { kind: "weapon"; result: WeaponDetectResult }
+  | { kind: "litter"; result: LitterDetectResult };
 
-function BehaviorPanel({ onClose }: Props) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+function BehaviorPanel({ onClose, cameras }: Props) {
+  const { hasPermission } = useAuth();
+  const isAdmin = hasPermission("ManageBehaviorSettings");
 
   const { settings, loading: settingsLoading, save: saveSettings } = useBehaviorSettings();
   const { detections, loading: detectionsLoading, refresh: refreshDetections } =
@@ -50,9 +53,10 @@ function BehaviorPanel({ onClose }: Props) {
   };
 
   // --- Upload ảnh test ---
+  const [testCameraId, setTestCameraId] = useState<string>("");
   const [testFile, setTestFile] = useState<File | null>(null);
   const [testPreviewUrl, setTestPreviewUrl] = useState<string | null>(null);
-  const [detecting, setDetecting] = useState<"crowd" | "weapon" | null>(null);
+  const [detecting, setDetecting] = useState<"crowd" | "weapon" | "litter" | null>(null);
   const [detectError, setDetectError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<LastResult | null>(null);
 
@@ -71,7 +75,8 @@ function BehaviorPanel({ onClose }: Props) {
     setDetectError(null);
 
     try {
-      const result = await detectCrowd(testFile);
+      const cameraId = testCameraId ? Number(testCameraId) : undefined;
+      const result = await detectCrowd(testFile, cameraId);
       setLastResult({ kind: "crowd", result });
       refreshDetections();
     } catch (err) {
@@ -88,11 +93,30 @@ function BehaviorPanel({ onClose }: Props) {
     setDetectError(null);
 
     try {
-      const result = await detectWeapon(testFile);
+      const cameraId = testCameraId ? Number(testCameraId) : undefined;
+      const result = await detectWeapon(testFile, cameraId);
       setLastResult({ kind: "weapon", result });
       refreshDetections();
     } catch (err) {
       setDetectError(err instanceof Error ? err.message : "Phát hiện vũ khí thất bại");
+    } finally {
+      setDetecting(null);
+    }
+  };
+
+  const handleDetectLitter = async () => {
+    if (!testFile) return;
+
+    setDetecting("litter");
+    setDetectError(null);
+
+    try {
+      const cameraId = testCameraId ? Number(testCameraId) : undefined;
+      const result = await detectLitter(testFile, cameraId);
+      setLastResult({ kind: "litter", result });
+      refreshDetections();
+    } catch (err) {
+      setDetectError(err instanceof Error ? err.message : "Phát hiện rác thất bại");
     } finally {
       setDetecting(null);
     }
@@ -119,7 +143,7 @@ function BehaviorPanel({ onClose }: Props) {
           flexShrink: 0,
         }}
       >
-        <h2 style={{ margin: 0 }}>🏃 AI Hành vi — Đám đông &amp; Vũ khí</h2>
+        <h2 style={{ margin: 0 }}>🏃 AI Hành vi — Đám đông, Vũ khí &amp; Vứt rác</h2>
         <button className="btn" onClick={onClose}>
           ✕ Đóng
         </button>
@@ -184,10 +208,19 @@ function BehaviorPanel({ onClose }: Props) {
             )}
           </div>
 
-          <div className="panel-block" style={{ padding: 14 }}>
+          <div className="panel-block" style={{ padding: 14, marginBottom: 14 }}>
             <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
               🔫 Phát hiện vũ khí không cần ngưỡng — chỉ cần phát hiện 1 khẩu súng
               trong khung hình là tạo cảnh báo Critical ngay lập tức.
+            </p>
+          </div>
+
+          <div className="panel-block" style={{ padding: 14 }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              🗑️ Phát hiện vứt rác: nhận diện vật dụng kiểu rác (chai, ly) bằng
+              YOLO, chỉ xác nhận là "bị bỏ lại" nếu thấy đúng vật đó nằm yên
+              tại cùng 1 vị trí qua ít nhất 2 lần lấy mẫu camera liên tiếp
+              (~10s) — tránh báo nhầm người đang cầm/mang theo đồ.
             </p>
           </div>
         </div>
@@ -197,6 +230,28 @@ function BehaviorPanel({ onClose }: Props) {
           <h3 className="panel-title">📷 Thử phát hiện từ ảnh</h3>
 
           <div className="panel-block" style={{ padding: 14, marginBottom: 14 }}>
+            <span className="field-label">Gắn với camera (tuỳ chọn)</span>
+            <select
+              className="select-input"
+              value={testCameraId}
+              onChange={(e) => setTestCameraId(e.target.value)}
+              style={{ marginBottom: 10 }}
+            >
+              <option value="">-- Không gắn camera (chỉ test model) --</option>
+              {cameras.map((cam) => (
+                <option key={cam.id} value={cam.id}>
+                  {cam.name}
+                </option>
+              ))}
+            </select>
+
+            {!testCameraId && (
+              <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -6, marginBottom: 10 }}>
+                Không gắn camera thì kết quả chỉ để tham khảo — sẽ KHÔNG tạo cảnh báo và
+                KHÔNG gửi email, vì cảnh báo luôn phải gắn với 1 camera cụ thể.
+              </p>
+            )}
+
             <input
               type="file"
               accept="image/*"
@@ -232,6 +287,15 @@ function BehaviorPanel({ onClose }: Props) {
               </button>
             </div>
 
+            <button
+              className="btn btn-primary btn-block"
+              style={{ marginTop: 8 }}
+              onClick={handleDetectLitter}
+              disabled={!testFile || detecting !== null}
+            >
+              {detecting === "litter" ? "Đang quét..." : "🗑️ Phát hiện rác (bấm 2 lần để xác nhận)"}
+            </button>
+
             {detectError && (
               <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>{detectError}</p>
             )}
@@ -247,9 +311,15 @@ function BehaviorPanel({ onClose }: Props) {
               </div>
 
               {lastResult.result.saved?.triggeredAlert ? (
-                <span className="badge badge-critical" style={{ marginTop: 8 }}>
-                  🚨 Vượt ngưỡng — đã tạo cảnh báo
-                </span>
+                lastResult.result.saved?.cameraId != null ? (
+                  <span className="badge badge-critical" style={{ marginTop: 8 }}>
+                    🚨 Vượt ngưỡng — đã tạo cảnh báo + gửi email (nếu Critical)
+                  </span>
+                ) : (
+                  <span className="badge badge-offline" style={{ marginTop: 8 }}>
+                    Vượt ngưỡng, nhưng chưa gắn camera — không tạo cảnh báo/email
+                  </span>
+                )
               ) : (
                 <span className="badge badge-online" style={{ marginTop: 8 }}>
                   ✅ Trong ngưỡng bình thường
@@ -276,9 +346,54 @@ function BehaviorPanel({ onClose }: Props) {
                       <b>{(d.confidence * 100).toFixed(1)}%</b>
                     </div>
                   ))}
-                  <span className="badge badge-critical" style={{ marginTop: 4 }}>
-                    🚨 Đã tạo cảnh báo Critical
-                  </span>
+                  {lastResult.result.saved?.cameraId != null ? (
+                    <span className="badge badge-critical" style={{ marginTop: 4 }}>
+                      🚨 Đã tạo cảnh báo Critical + gửi email
+                    </span>
+                  ) : (
+                    <span className="badge badge-offline" style={{ marginTop: 4 }}>
+                      Chưa gắn camera — không tạo cảnh báo/email
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {lastResult && lastResult.kind === "litter" && (
+            <div className="card" style={{ padding: 12 }}>
+              <b style={{ fontSize: 14 }}>
+                Vật dụng kiểu rác trong khung hình ({lastResult.result.candidates.length})
+              </b>
+
+              {lastResult.result.candidates.length === 0 ? (
+                <div className="empty-state" style={{ marginTop: 8 }}>
+                  Không phát hiện chai/ly nào trong ảnh
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                  {lastResult.result.candidates.map((c, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span>{c.label}</span>
+                      <b>{(c.confidence * 100).toFixed(1)}%</b>
+                    </div>
+                  ))}
+
+                  {lastResult.result.triggered.length > 0 ? (
+                    lastResult.result.saved?.cameraId != null ? (
+                      <span className="badge badge-warning" style={{ marginTop: 4 }}>
+                        🚨 Xác nhận bị bỏ lại — đã tạo cảnh báo Warning
+                      </span>
+                    ) : (
+                      <span className="badge badge-offline" style={{ marginTop: 4 }}>
+                        Xác nhận bị bỏ lại, nhưng chưa gắn camera — không tạo cảnh báo
+                      </span>
+                    )
+                  ) : (
+                    <span className="badge badge-online" style={{ marginTop: 4 }}>
+                      Mới thấy lần đầu — bấm lại (cùng ảnh) để xác nhận vật nằm yên
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -302,7 +417,11 @@ function BehaviorPanel({ onClose }: Props) {
               <div key={d.id} className="card" style={{ padding: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <b style={{ fontSize: 13 }}>
-                    {d.type === "crowd" ? `👥 Đám đông (${d.personCount} người)` : "🔫 Vũ khí"}
+                    {d.type === "crowd"
+                      ? `👥 Đám đông (${d.personCount} người)`
+                      : d.type === "litter"
+                        ? "🗑️ Vứt rác"
+                        : "🔫 Vũ khí"}
                   </b>
                   {d.triggeredAlert ? (
                     <span className="badge badge-critical">🚨</span>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ZoneAlertStat } from "../types/zoneStats";
 
 interface Props {
@@ -6,12 +7,13 @@ interface Props {
 }
 
 function ZoneStatsChart({ stats }: Props) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState<number | null>(null);
 
   if (stats.length === 0) {
     return (
       <div style={{ fontSize: 12, color: "var(--text-faint)", padding: "8px 0" }}>
-        Đang tải dữ liệu...
+        {t("zoneStats.loading")}
       </div>
     );
   }
@@ -21,7 +23,7 @@ function ZoneStatsChart({ stats }: Props) {
   return (
     <div>
       <div className="panel-title" style={{ marginBottom: 10 }}>
-        📍 Sự kiện theo khu vực (7 ngày)
+        {t("zoneStats.title")}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

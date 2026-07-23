@@ -2,8 +2,10 @@ import { useState } from "react";
 import usePeople from "../hooks/usePeople";
 import useFaceDetections from "../hooks/useFaceDetections";
 import useAttendanceSummary from "../hooks/useAttendanceSummary";
+import useFaceSettings from "../hooks/useFaceSettings";
 import { enrollPerson, detectFacesInImage } from "../api/faceService";
 import type { FaceDetectResult } from "../api/faceService";
+import { exportAttendanceExcel } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 
 interface Props {
@@ -11,14 +13,50 @@ interface Props {
 }
 
 function FacePanel({ onClose }: Props) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const { hasPermission } = useAuth();
+  const isAdmin = hasPermission("ManageFaceEnrollment");
 
   const { people, loading: peopleLoading, addPerson, removePerson } = usePeople();
   const { detections, loading: detectionsLoading, refresh: refreshDetections } =
     useFaceDetections(undefined, 30);
   const { summary: attendance, loading: attendanceLoading, refresh: refreshAttendance } =
     useAttendanceSummary(7);
+  const { settings: faceSettings, save: saveFaceSettings } = useFaceSettings();
+  const [savingAntiSpoofing, setSavingAntiSpoofing] = useState(false);
+
+  const handleToggleAntiSpoofing = async () => {
+    if (!faceSettings) return;
+    setSavingAntiSpoofing(true);
+    try {
+      await saveFaceSettings(!faceSettings.antiSpoofingEnabled);
+    } catch (err) {
+      console.error("Không đổi được cấu hình chống giả mạo:", err);
+    } finally {
+      setSavingAntiSpoofing(false);
+    }
+  };
+
+  const [exportingAttendance, setExportingAttendance] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const handleExportAttendance = async () => {
+    setExportingAttendance(true);
+    setExportError(null);
+
+    try {
+      const blob = await exportAttendanceExcel(7);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `diem-danh_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Xuất Excel thất bại");
+    } finally {
+      setExportingAttendance(false);
+    }
+  };
 
   // --- Đăng ký người mới ---
   const [enrollName, setEnrollName] = useState("");
@@ -125,6 +163,30 @@ function FacePanel({ onClose }: Props) {
       >
         {/* Cột trái: Danh sách người đã đăng ký */}
         <div className="scroll-area" style={{ overflow: "auto", paddingRight: 4 }}>
+          <h3 className="panel-title">🛡️ Chống giả mạo khuôn mặt</h3>
+
+          <div className="panel-block" style={{ padding: 14, marginBottom: 14 }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
+              Khi bật: ảnh in/màn hình phát lại (không phải khuôn mặt thật trước camera) sẽ{" "}
+              <b>không được tính là điểm danh hợp lệ</b>, kể cả khi khớp đúng người đã đăng ký —
+              đồng thời tạo cảnh báo nghi ngờ giả mạo.
+            </p>
+
+            {isAdmin ? (
+              <button
+                className={"btn btn-block" + (faceSettings?.antiSpoofingEnabled ? " btn-primary" : "")}
+                onClick={handleToggleAntiSpoofing}
+                disabled={!faceSettings || savingAntiSpoofing}
+              >
+                {faceSettings?.antiSpoofingEnabled ? "✅ Đang BẬT — bấm để tắt" : "⭕ Đang TẮT — bấm để bật"}
+              </button>
+            ) : (
+              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                {faceSettings?.antiSpoofingEnabled ? "✅ Đang bật" : "⭕ Đang tắt"}
+              </div>
+            )}
+          </div>
+
           <h3 className="panel-title">👥 Người đã đăng ký</h3>
 
           {isAdmin && (
@@ -225,9 +287,31 @@ function FacePanel({ onClose }: Props) {
             ))}
           </div>
 
-          <h3 className="panel-title" style={{ marginTop: 20 }}>
-            📊 Điểm danh 7 ngày qua
-          </h3>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 20,
+            }}
+          >
+            <h3 className="panel-title" style={{ margin: 0 }}>
+              📊 Điểm danh 7 ngày qua
+            </h3>
+
+            <button
+              className="btn btn-sm"
+              onClick={handleExportAttendance}
+              disabled={exportingAttendance || attendance.length === 0}
+              title="Xuất báo cáo điểm danh ra file Excel"
+            >
+              {exportingAttendance ? "Đang xuất..." : "📥 Xuất Excel"}
+            </button>
+          </div>
+
+          {exportError && (
+            <p style={{ color: "var(--danger)", fontSize: 11, marginTop: 4 }}>{exportError}</p>
+          )}
 
           {attendanceLoading && (
             <div style={{ fontSize: 12, color: "var(--text-faint)" }}>Đang tải...</div>
@@ -303,19 +387,29 @@ function FacePanel({ onClose }: Props) {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {lastResults.map((r, i) => (
                   <div key={i} className="card" style={{ padding: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
                       <b style={{ fontSize: 14 }}>{r.saved.personName ?? "Người lạ"}</b>
-                      {r.saved.personName ? (
-                        <span className="badge badge-online">✅ Đã xác định</span>
-                      ) : (
-                        <span className="badge badge-offline">❓ Không xác định</span>
-                      )}
+                      <div style={{ display: "flex", gap: 4 }}>
+                        {r.saved.isLive === false && (
+                          <span className="badge badge-critical">🚨 Nghi giả mạo</span>
+                        )}
+                        {r.saved.personName ? (
+                          <span className="badge badge-online">✅ Đã xác định</span>
+                        ) : (
+                          <span className="badge badge-offline">❓ Không xác định</span>
+                        )}
+                      </div>
                     </div>
                     <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
                       {r.saved.personName
                         ? `Độ tương đồng: ${(r.saved.similarity * 100).toFixed(1)}%`
                         : `Độ tin cậy phát hiện: ${(r.detScore * 100).toFixed(1)}%`}
                     </div>
+                    {r.saved.livenessScore !== null && (
+                      <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>
+                        Liveness score: {(r.saved.livenessScore * 100).toFixed(1)}%
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -338,13 +432,16 @@ function FacePanel({ onClose }: Props) {
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
             {detections.map((d) => (
               <div key={d.id} className="card" style={{ padding: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
                   <b style={{ fontSize: 13 }}>{d.personName ?? "Người lạ"}</b>
-                  {d.personName ? (
-                    <span className="badge badge-online">✅</span>
-                  ) : (
-                    <span className="badge badge-offline">❓</span>
-                  )}
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {d.isLive === false && <span className="badge badge-critical">🚨 Giả mạo</span>}
+                    {d.personName ? (
+                      <span className="badge badge-online">✅</span>
+                    ) : (
+                      <span className="badge badge-offline">❓</span>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>

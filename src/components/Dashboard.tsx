@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { Camera } from "../types/camera";
 import type { CameraAlert } from "../types/alert";
 
@@ -8,6 +9,7 @@ interface Props {
 }
 
 function Dashboard({ cameras, alerts }: Props) {
+  const { t } = useTranslation();
   const totalCamera = cameras.length;
 
   const onlineCamera = cameras.filter(
@@ -33,7 +35,7 @@ function Dashboard({ cameras, alerts }: Props) {
       }}
     >
       <h3 className="panel-title" style={{ marginBottom: 12 }}>
-        📷 Camera Dashboard
+        {t("dashboard.title")}
       </h3>
 
       <div
@@ -44,33 +46,33 @@ function Dashboard({ cameras, alerts }: Props) {
         }}
       >
         <div className="dashboard-stat">
-          <span className="dashboard-stat-label">Tổng camera</span>
+          <span className="dashboard-stat-label">{t("dashboard.total")}</span>
           <b className="dashboard-stat-value">{totalCamera}</b>
         </div>
 
         <div className="dashboard-stat">
-          <span className="dashboard-stat-label">🟢 Online</span>
+          <span className="dashboard-stat-label">{t("dashboard.online")}</span>
           <b className="dashboard-stat-value" style={{ color: "var(--success)" }}>
             {onlineCamera}
           </b>
         </div>
 
         <div className="dashboard-stat">
-          <span className="dashboard-stat-label">⚪ Offline</span>
+          <span className="dashboard-stat-label">{t("dashboard.offline")}</span>
           <b className="dashboard-stat-value" style={{ color: "var(--neutral)" }}>
             {offlineCamera}
           </b>
         </div>
 
         <div className="dashboard-stat">
-          <span className="dashboard-stat-label">🚨 Alert</span>
+          <span className="dashboard-stat-label">{t("dashboard.alert")}</span>
           <b className="dashboard-stat-value" style={{ color: "var(--warning)" }}>
             {alerts.length}
           </b>
         </div>
 
         <div className="dashboard-stat" style={{ gridColumn: "1 / -1" }}>
-          <span className="dashboard-stat-label">🔥 Critical</span>
+          <span className="dashboard-stat-label">{t("dashboard.critical")}</span>
           <b className="dashboard-stat-value" style={{ color: "var(--danger)" }}>
             {criticalAlerts}
           </b>

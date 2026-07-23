@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ZoneWithCamera } from "../types/zoneWithCamera";
 
 interface Props {
@@ -15,15 +16,17 @@ function ZoneList({
 
   onSelect,
 }: Props) {
+  const { t } = useTranslation();
+
   return (
     <div>
       <h3 className="panel-title" style={{ marginBottom: 8 }}>
-        🏢 Zone
+        {t("zoneList.title")}
       </h3>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {zones.length === 0 && (
-          <div className="empty-state">Chưa có khu vực nào</div>
+          <div className="empty-state">{t("zoneList.empty")}</div>
         )}
 
         {zones.map((zone) => (
@@ -81,7 +84,7 @@ function ZoneList({
             <small
               style={{ color: "var(--text-faint)", flexShrink: 0 }}
             >
-              {zone.cameras.length} camera
+              {zone.cameras.length} {t("common.camera")}
             </small>
           </div>
         ))}

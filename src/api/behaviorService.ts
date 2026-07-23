@@ -19,6 +19,17 @@ export interface WeaponDetectResult {
   saved: BehaviorDetection | null;
 }
 
+export interface LitterCandidate {
+  label: string;
+  confidence: number;
+}
+
+export interface LitterDetectResult {
+  candidates: LitterCandidate[];
+  triggered: LitterCandidate[];
+  saved: BehaviorDetection | null;
+}
+
 async function postImage<T>(path: string, file: File, cameraId?: number): Promise<T> {
   const formData = new FormData();
   formData.append("file", file);
@@ -42,4 +53,8 @@ export function detectCrowd(file: File, cameraId?: number): Promise<CrowdDetectR
 
 export function detectWeapon(file: File, cameraId?: number): Promise<WeaponDetectResult> {
   return postImage<WeaponDetectResult>("/detect-weapon", file, cameraId);
+}
+
+export function detectLitter(file: File, cameraId?: number): Promise<LitterDetectResult> {
+  return postImage<LitterDetectResult>("/detect-litter", file, cameraId);
 }

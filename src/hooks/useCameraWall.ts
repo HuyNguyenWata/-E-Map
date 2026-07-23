@@ -23,6 +23,11 @@ export default function useCameraWall() {
     setSelectedCameras([]);
   };
 
+  // Thay toàn bộ danh sách — dùng khi mở 1 Favorite View đã lưu.
+  const loadCameras = (cameras: Camera[]) => {
+    setSelectedCameras(cameras);
+  };
+
   return {
     selectedCameras,
 
@@ -31,5 +36,7 @@ export default function useCameraWall() {
     removeCamera,
 
     clearCamera,
+
+    loadCameras,
   };
 }

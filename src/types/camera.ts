@@ -17,6 +17,10 @@ export interface Camera {
 
   streamUrl: string;
 
+  // Có giá trị khi StreamUrl do backend tự tính từ nguồn RTSP camera thật
+  // (xem CamerasController) — null khi camera đang ở chế độ push thủ công.
+  sourceRtspUrl?: string | null;
+
   signal: number;
 
   lastSeen: string;
@@ -37,5 +41,6 @@ export interface CreateCameraInput {
   longitude: number;
   address: string;
   streamUrl: string;
+  sourceRtspUrl?: string;
   zoneId?: number | null;
 }

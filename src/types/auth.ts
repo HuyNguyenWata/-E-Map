@@ -1,12 +1,24 @@
-export type UserRoleName = "admin" | "viewer";
+export type Permission =
+  | "ViewLive"
+  | "ViewPlayback"
+  | "ExportRecording"
+  | "ManageCameras"
+  | "ManageZones"
+  | "ManageAnprList"
+  | "ManageFaceEnrollment"
+  | "ManageBehaviorSettings"
+  | "ResolveAlerts"
+  | "ManageUsers";
 
 export interface AuthUser {
   username: string;
-  role: UserRoleName;
+  roleName: string;
+  permissions: Permission[];
 }
 
 export interface LoginResponse {
   token: string;
   username: string;
-  role: UserRoleName;
+  roleName: string;
+  permissions: Permission[];
 }

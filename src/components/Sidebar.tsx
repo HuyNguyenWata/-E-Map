@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Camera } from "../types/camera";
 import { useAuth } from "../auth/AuthContext";
 
@@ -5,10 +7,18 @@ interface Props {
   cameras: Camera[];
   onSelect: (camera: Camera) => void;
   onAddCamera: () => void;
+  favoriteIds: Set<number>;
+  onToggleFavorite: (cameraId: number) => void;
 }
 
-function Sidebar({ cameras, onSelect, onAddCamera }: Props) {
-  const { user } = useAuth();
+function Sidebar({ cameras, onSelect, onAddCamera, favoriteIds, onToggleFavorite }: Props) {
+  const { t } = useTranslation();
+  const { hasPermission } = useAuth();
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+
+  const visibleCameras = onlyFavorites
+    ? cameras.filter((c) => favoriteIds.has(c.id))
+    : cameras;
 
   return (
     <div
@@ -31,21 +41,33 @@ function Sidebar({ cameras, onSelect, onAddCamera }: Props) {
         }}
       >
         <h3 className="panel-title" style={{ margin: 0 }}>
-          Danh sách Camera ({cameras.length})
+          {t("sidebar.title")} ({visibleCameras.length})
         </h3>
 
-        {user?.role === "admin" && (
-          <button className="btn btn-sm btn-primary" onClick={onAddCamera}>
-            + Thêm
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            className={"btn btn-sm" + (onlyFavorites ? " btn-active" : "")}
+            onClick={() => setOnlyFavorites((prev) => !prev)}
+            title={t("sidebar.favoritesOnly")}
+          >
+            {onlyFavorites ? t("sidebar.favoritesOnly") : t("sidebar.favoritesOnlyOff")}
           </button>
-        )}
+
+          {hasPermission("ManageCameras") && (
+            <button className="btn btn-sm btn-primary" onClick={onAddCamera}>
+              {t("sidebar.add")}
+            </button>
+          )}
+        </div>
       </div>
 
-      {cameras.length === 0 && (
-        <div className="empty-state">Không tìm thấy camera phù hợp</div>
+      {visibleCameras.length === 0 && (
+        <div className="empty-state">
+          {onlyFavorites ? t("sidebar.emptyFavorites") : t("sidebar.empty")}
+        </div>
       )}
 
-      {cameras.map((camera) => (
+      {visibleCameras.map((camera) => (
         <div
           key={camera.id}
           onClick={() => onSelect(camera)}
@@ -62,7 +84,24 @@ function Sidebar({ cameras, onSelect, onAddCamera }: Props) {
               gap: 8,
             }}
           >
-            <b style={{ fontSize: 13 }}>{camera.name}</b>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+              <button
+                className="btn btn-icon btn-ghost"
+                style={{ padding: 0, fontSize: 14, lineHeight: 1 }}
+                title={
+                  favoriteIds.has(camera.id)
+                    ? t("sidebar.removeFromFavorite")
+                    : t("sidebar.addToFavorite")
+                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite(camera.id);
+                }}
+              >
+                {favoriteIds.has(camera.id) ? "⭐" : "☆"}
+              </button>
+              <b style={{ fontSize: 13 }}>{camera.name}</b>
+            </div>
 
             <span
               className={
@@ -71,7 +110,7 @@ function Sidebar({ cameras, onSelect, onAddCamera }: Props) {
               }
             >
               <span className="badge-dot" />
-              {camera.status === "online" ? "Online" : "Offline"}
+              {camera.status === "online" ? t("common.online") : t("common.offline")}
             </span>
           </div>
 
@@ -94,7 +133,7 @@ function Sidebar({ cameras, onSelect, onAddCamera }: Props) {
               marginTop: 2,
             }}
           >
-            <span>Signal {camera.signal}%</span>
+            <span>{t("sidebar.signal")} {camera.signal}%</span>
             <span>{camera.lastSeen}</span>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useZoneCamera from "../hooks/useZoneCamera";
 import EMapLayout from "../components/EMapLayout";
 
@@ -29,6 +29,10 @@ import ZoneFormModal from "../components/ZoneFormModal";
 import AnprPanel from "../components/AnprPanel";
 import FacePanel from "../components/FacePanel";
 import BehaviorPanel from "../components/BehaviorPanel";
+import UsersPanel from "../components/UsersPanel";
+import useFavoriteCameras from "../hooks/useFavoriteCameras";
+import useFavoriteViews from "../hooks/useFavoriteViews";
+import { playCriticalAlertSound } from "../utils/sound";
 import type { RoutePoint } from "../components/PlateRouteLayer";
 function EMap() {
   const { cameras, updateCamera, upsertCamera, createCamera, deleteCamera, editCamera } =
@@ -43,6 +47,7 @@ function EMap() {
     filtered,
   } = useCameraFilter(cameras);
   const { alerts } = useCameraRealtime(cameras, updateCamera, upsertCamera);
+  const { favoriteIds, toggleFavorite } = useFavoriteCameras();
   const { health } = useSystemHealth();
   const { stats: alertStats } = useAlertStats(7, alerts.length);
   const { stats: zoneStats } = useZoneStats(7, alerts.length);
@@ -55,6 +60,7 @@ function EMap() {
   const [showAnpr, setShowAnpr] = useState(false);
   const [showFace, setShowFace] = useState(false);
   const [showBehavior, setShowBehavior] = useState(false);
+  const [showUsers, setShowUsers] = useState(false);
   const [routePlate, setRoutePlate] = useState<string | null>(null);
   const [routePoints, setRoutePoints] = useState<RoutePoint[]>([]);
   const {
@@ -65,7 +71,28 @@ function EMap() {
     removeCamera,
 
     clearCamera,
+
+    loadCameras,
   } = useCameraWall();
+  const { views: favoriteViews, save: saveFavoriteView, remove: removeFavoriteView } =
+    useFavoriteViews();
+
+  // Tự động popup live view + phát âm thanh khi có cảnh báo Critical mới —
+  // đúng yêu cầu "Tự động popup hình ảnh live view camera có xảy ra sự kiện
+  // đặt trước" + "Tự động cảnh báo âm thanh" trong spec.
+  const lastCriticalAlertId = useRef<number | null>(null);
+  useEffect(() => {
+    const latest = alerts[0];
+    if (!latest || latest.id === lastCriticalAlertId.current) return;
+    lastCriticalAlertId.current = latest.id;
+
+    if (latest.severity === "critical") {
+      playCriticalAlertSound();
+
+      const camera = cameras.find((c) => c.id === latest.cameraId);
+      if (camera) setSelectedCamera(camera);
+    }
+  }, [alerts, cameras]);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [drawZone, setDrawZone] = useState(false);
   const [showCamera, setShowCamera] = useState(true);
@@ -206,6 +233,27 @@ function EMap() {
     setRoutePlate(null);
     setRoutePoints([]);
   };
+
+  const handleSaveFavoriteView = async () => {
+    if (selectedCameras.length === 0) return;
+
+    const name = window.prompt("Tên layout:");
+    if (!name || !name.trim()) return;
+
+    try {
+      await saveFavoriteView(name.trim(), selectedCameras.map((c) => c.id));
+    } catch (err) {
+      console.error("Không lưu được layout:", err);
+    }
+  };
+
+  const handleLoadFavoriteView = (cameraIds: number[]) => {
+    const matched = cameraIds
+      .map((id) => cameras.find((c) => c.id === id))
+      .filter((c): c is Camera => c !== undefined);
+
+    loadCameras(matched);
+  };
   return (
     <>
       <EMapLayout
@@ -229,6 +277,9 @@ function EMap() {
           onSelectZone={setSelectedZone}
           onClear={() => setSelectedZone(null)}
           onAddCamera={handleOpenAddCamera}
+          onManageUsers={() => setShowUsers(true)}
+          favoriteIds={favoriteIds}
+          onToggleFavorite={toggleFavorite}
         />
       }
       center={
@@ -369,6 +420,8 @@ function EMap() {
           close={() => setSelectedCamera(null)}
           onEdit={handleOpenEditCamera}
           onDelete={handleDeleteCamera}
+          favoriteIds={favoriteIds}
+          onToggleFavorite={toggleFavorite}
         />
       }
       />
@@ -395,13 +448,16 @@ function EMap() {
           onLocate={handleLocateOnMap}
           onShowRoute={handleShowRoute}
           zones={zones}
+          cameras={cameras}
           onToggleZoneWatch={toggleZoneWatch}
         />
       )}
 
       {showFace && <FacePanel onClose={() => setShowFace(false)} />}
 
-      {showBehavior && <BehaviorPanel onClose={() => setShowBehavior(false)} />}
+      {showBehavior && <BehaviorPanel onClose={() => setShowBehavior(false)} cameras={cameras} />}
+
+      {showUsers && <UsersPanel onClose={() => setShowUsers(false)} zones={zones} />}
 
       {showWall && (
         <div
@@ -441,9 +497,53 @@ function EMap() {
                   xem thêm
                 </span>
               )}
+
+              <select
+                className="select-input"
+                style={{ fontSize: 12, padding: "4px 8px", maxWidth: 180 }}
+                value=""
+                onChange={(e) => {
+                  const view = favoriteViews.find((v) => v.id === Number(e.target.value));
+                  if (view) handleLoadFavoriteView(view.cameraIds);
+                }}
+              >
+                <option value="">📂 Mở layout đã lưu...</option>
+                {favoriteViews.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name} ({v.cameraIds.length})
+                  </option>
+                ))}
+              </select>
+
+              {favoriteViews.length > 0 && (
+                <select
+                  className="select-input"
+                  style={{ fontSize: 12, padding: "4px 8px", maxWidth: 160 }}
+                  value=""
+                  onChange={(e) => {
+                    const id = Number(e.target.value);
+                    if (id) removeFavoriteView(id).catch((err) => console.error("Không xoá được layout:", err));
+                  }}
+                >
+                  <option value="">🗑️ Xoá layout đã lưu...</option>
+                  {favoriteViews.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="btn"
+                onClick={handleSaveFavoriteView}
+                disabled={selectedCameras.length === 0}
+                title="Lưu danh sách camera hiện tại thành 1 layout ưa thích"
+              >
+                💾 Lưu layout
+              </button>
               <button className="btn btn-danger" onClick={clearCamera}>
                 Clear All
               </button>

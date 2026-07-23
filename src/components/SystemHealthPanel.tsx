@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { SystemHealth } from "../types/systemHealth";
 
 interface Props {
@@ -52,10 +53,12 @@ function HealthRow({ label, percent, valueText }: { label: string; percent: numb
 }
 
 function SystemHealthPanel({ health }: Props) {
+  const { t } = useTranslation();
+
   if (!health) {
     return (
       <div style={{ fontSize: 12, color: "var(--text-faint)", padding: "8px 0" }}>
-        Đang tải dữ liệu server...
+        {t("health.loading")}
       </div>
     );
   }
@@ -66,7 +69,7 @@ function SystemHealthPanel({ health }: Props) {
   return (
     <div>
       <div className="panel-title" style={{ marginBottom: 10 }}>
-        🖥️ Sức khỏe Server
+        {t("health.title")}
       </div>
 
       <HealthRow label="CPU" percent={health.cpuPercent} valueText={`${health.cpuPercent.toFixed(1)}%`} />
@@ -76,7 +79,7 @@ function SystemHealthPanel({ health }: Props) {
         valueText={`${(health.ramUsedMb / 1024).toFixed(1)} / ${(health.ramTotalMb / 1024).toFixed(1)} GB`}
       />
       <HealthRow
-        label="Ổ đĩa"
+        label={t("health.disk")}
         percent={diskPercent}
         valueText={`${health.diskUsedGb.toFixed(0)} / ${health.diskTotalGb.toFixed(0)} GB`}
       />

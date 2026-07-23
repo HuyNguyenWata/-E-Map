@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { CameraFilter } from "../types/filter";
 
 interface Props {
@@ -19,13 +20,15 @@ function FilterPanel({
 
   result,
 }: Props) {
+  const { t } = useTranslation();
+
   return (
     <div className="panel-block" style={{ padding: 14 }}>
-      <h3 className="panel-title">🔍 Camera Filter</h3>
+      <h3 className="panel-title">{t("filter.title")}</h3>
 
       <input
         className="text-input"
-        placeholder="Tên hoặc địa chỉ"
+        placeholder={t("filter.keywordPlaceholder")}
         value={filter.keyword}
         onChange={(e) =>
           setFilter({
@@ -37,7 +40,7 @@ function FilterPanel({
       />
 
       <div style={{ marginTop: 12 }}>
-        <span className="field-label">Status</span>
+        <span className="field-label">{t("filter.status")}</span>
 
         <div className="radio-row">
           <label
@@ -56,7 +59,7 @@ function FilterPanel({
                 })
               }
             />
-            All
+            {t("filter.all")}
           </label>
 
           <label
@@ -76,7 +79,7 @@ function FilterPanel({
                 })
               }
             />
-            🟢 Online
+            {t("filter.online")}
           </label>
 
           <label
@@ -96,13 +99,13 @@ function FilterPanel({
                 })
               }
             />
-            ⚪ Offline
+            {t("filter.offline")}
           </label>
         </div>
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <span className="field-label">Alert</span>
+        <span className="field-label">{t("filter.alertLabel")}</span>
 
         <select
           className="select-input"
@@ -115,13 +118,13 @@ function FilterPanel({
             })
           }
         >
-          <option value="all">Tất cả</option>
+          <option value="all">{t("filter.all")}</option>
 
-          <option value="critical">🔥 Critical</option>
+          <option value="critical">{t("filter.critical")}</option>
 
-          <option value="warning">⚠ Warning</option>
+          <option value="warning">{t("filter.warning")}</option>
 
-          <option value="none">Không cảnh báo</option>
+          <option value="none">{t("filter.none")}</option>
         </select>
       </div>
 
@@ -132,11 +135,11 @@ function FilterPanel({
           color: "var(--text-muted)",
         }}
       >
-        Hiển thị:{" "}
+        {t("filter.showing")}:{" "}
         <b style={{ color: "var(--text)" }}>
           {result}/{total}
         </b>{" "}
-        camera
+        {t("common.camera")}
       </p>
     </div>
   );
