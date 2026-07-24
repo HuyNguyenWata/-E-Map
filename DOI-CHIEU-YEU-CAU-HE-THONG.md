@@ -53,7 +53,7 @@ Chú thích trạng thái: ✅ Đã có · ⚠️ Có một phần / khác cách
 | Ghi luồng phụ (dual-stream) | ❌ | Mỗi camera chỉ có 1 luồng RTSP/HLS |
 | Mã hoá AES 128/256 cho file ghi hình | ❌ | File `.mp4`/segment lưu dạng thường, không mã hoá |
 | Lưu trữ riêng theo kênh/nhóm/luồng | ⚠️ | Mỗi camera có thư mục riêng (theo path MediaMTX), chưa có cấu hình lưu trữ riêng theo nhóm (chỉ phân theo Zone ở mức hiển thị) |
-| Đánh dấu thủ công/tự động/bán tự động | ✅ | Bookmark thủ công + `AutoBookmarkService` (🤖 tự tạo theo sự kiện AI) |
+| Đánh dấu thủ công/tự động/bán tự động | ✅ | Bookmark thủ công + `AutoBookmarkService` (🤖 tự tạo theo sự kiện AI); clip sự kiện tự động (EventClip) có thể **xem trực tiếp trong popup** (không cần tải file) hoặc tải `.mp4` về máy |
 | Edge Recording (ONVIF Profile G) | ❌ | Chưa có |
 
 ### Khả năng giám sát

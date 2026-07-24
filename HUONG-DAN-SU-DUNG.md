@@ -177,11 +177,12 @@ Không cần thao tác gì — chỉ cần biết vị trí 3 vùng để làm t
 1. Mở panel chi tiết camera, cuộn tới mục **"🎬 Clip sự kiện tự động"**.
 2. Danh sách clip được hệ thống tự tạo mỗi khi có cảnh báo AI (ANPR/khuôn mặt/hành vi/VCA) hiện tại đây — không cần thao tác tạo thủ công.
 3. Kiểm tra trạng thái từng clip:
-   - **⏳ Đang xử lý**: chờ thêm, chưa tải được.
+   - **⏳ Đang xử lý**: chờ thêm, chưa xem/tải được.
    - **⚠️ Lỗi xuất clip**: di chuột vào để xem lý do lỗi.
    - Không có badge lỗi/đang xử lý = clip đã sẵn sàng.
-4. Với clip sẵn sàng *(cần quyền xuất bản ghi)*: bấm nút **⬇️** để tải file `.mp4` về máy.
-5. Bấm 🗑️ để xoá clip khỏi danh sách nếu không cần nữa.
+4. Với clip sẵn sàng, bấm nút **▶️ "Xem clip"** để phát trực tiếp ngay trong 1 cửa sổ popup, không cần tải file về máy trước (không yêu cầu quyền xuất bản ghi). Bấm ✕ hoặc bấm ra ngoài popup để đóng.
+5. Muốn lưu file về máy *(cần quyền xuất bản ghi)*: bấm nút **⬇️** để tải file `.mp4` về máy.
+6. Bấm 🗑️ để xoá clip khỏi danh sách nếu không cần nữa.
 
 ## 15. Xem lịch sử cảnh báo của 1 camera
 
