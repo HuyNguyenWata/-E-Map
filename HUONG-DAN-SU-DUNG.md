@@ -199,6 +199,8 @@ Không cần thao tác gì — chỉ cần biết vị trí 3 vùng để làm t
 6. Để xoá toàn bộ, bấm nút **"Clear All"** ở thanh trên cùng.
 7. Bấm **"✕ Đóng"** để thoát Camera Wall, quay lại bản đồ (danh sách camera đã thêm vẫn được giữ để mở lại sau).
 
+**Tự động ghi nhớ & khôi phục (không cần thao tác gì):** hệ thống tự lưu lại danh sách camera, kích thước lưới và trạng thái đóng/mở của Camera Wall mỗi khi có thay đổi (~1.5 giây sau lần đổi cuối). Lần đăng nhập/mở app tiếp theo, Camera Wall sẽ **tự động khôi phục lại đúng như lúc trước** (camera đã chọn, kích thước lưới, có đang mở toàn màn hình hay không) — khác với Layout ưa thích ở mục 17 (phải chủ động bấm lưu/mở), cơ chế này hoàn toàn tự động và luôn ghi nhớ trạng thái gần nhất.
+
 ## 17. Lưu / mở / xoá layout ưa thích
 
 Thực hiện trong màn hình **Camera Wall** (mục 16):

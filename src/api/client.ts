@@ -9,7 +9,7 @@ import type { LoginResponse } from "../types/auth";
 import type { CreatePlateEntryInput, LicensePlateEntry, PlateDetection, AnprWatchArea, CreateAnprWatchAreaInput } from "../types/anpr";
 import type { AttendanceSummary, FaceDetection, FaceSettings, Person } from "../types/face";
 import type { BehaviorDetection, BehaviorSettings, BehaviorType } from "../types/behavior";
-import type { ManagedUser, Role, CreateUserInput, UpdateUserInput } from "../types/user";
+import type { ManagedUser, Role, CreateUserInput, UpdateUserInput, SaveLastViewInput } from "../types/user";
 import type { FavoriteView, CreateFavoriteViewInput } from "../types/favorite";
 import type { VideoBookmark, CreateBookmarkInput } from "../types/bookmark";
 import type { VcaCameraConfig, VcaLine, VcaZone, CreateVcaLineInput, CreateVcaZoneInput } from "../types/vca";
@@ -126,6 +126,18 @@ export function getRoles(): Promise<Role[]> {
 
 export function getUsers(): Promise<ManagedUser[]> {
   return request<ManagedUser[]>("/api/auth/users");
+}
+
+export function getMe(): Promise<ManagedUser> {
+  return request<ManagedUser>("/api/auth/me");
+}
+
+// H16 — best-effort, không nên làm gián đoạn UI nếu tạm lỗi mạng.
+export function saveLastView(input: SaveLastViewInput): Promise<void> {
+  return request<void>("/api/auth/me/last-view", {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
 }
 
 export function createUser(input: CreateUserInput): Promise<ManagedUser> {

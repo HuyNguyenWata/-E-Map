@@ -16,6 +16,16 @@ export interface ManagedUser {
   timeWindowEndMinutes: number | null;
   // H21
   authProvider: AuthProvider;
+  // H16 — null = chưa từng dùng Camera Wall, không có gì để khôi phục.
+  lastViewCameraIds: number[] | null;
+  lastViewWallGridSize: number | null;
+  lastViewShowWall: boolean;
+}
+
+export interface SaveLastViewInput {
+  cameraIds: number[];
+  wallGridSize: number;
+  showWall: boolean;
 }
 
 export interface Role {

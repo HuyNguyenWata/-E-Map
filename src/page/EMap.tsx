@@ -37,7 +37,7 @@ import UsersPanel from "../components/UsersPanel";
 import useFavoriteCameras from "../hooks/useFavoriteCameras";
 import useFavoriteViews from "../hooks/useFavoriteViews";
 import { playCriticalAlertSound } from "../utils/sound";
-import { createAnprWatchArea } from "../api/client";
+import { createAnprWatchArea, getMe, saveLastView } from "../api/client";
 import type { RoutePoint } from "../components/PlateRouteLayer";
 function EMap() {
   const { cameras, updateCamera, upsertCamera, createCamera, deleteCamera, editCamera } =
@@ -114,6 +114,46 @@ function EMap() {
   const [map, setMap] = useState<Map | null>(null);
   const [showWall, setShowWall] = useState(false);
   const [wallGridSize, setWallGridSize] = useState(4);
+
+  // H16 — "Client tự động bật lại chế độ xem trước đó khi tắt/mở lại": khôi
+  // phục Camera Wall đã lưu tự động 1 lần khi danh sách camera có dữ liệu,
+  // rồi tự lưu lại (debounce) mỗi khi selection/grid/hiện-ẩn thay đổi — khác
+  // Favorite View (phải chủ động bấm lưu), đây hoàn toàn tự động.
+  const hasRestoredLastView = useRef(false);
+
+  useEffect(() => {
+    if (hasRestoredLastView.current || cameras.length === 0) return;
+    hasRestoredLastView.current = true;
+
+    getMe()
+      .then((me) => {
+        if (!me.lastViewCameraIds || me.lastViewCameraIds.length === 0) return;
+
+        const matched = me.lastViewCameraIds
+          .map((id) => cameras.find((c) => c.id === id))
+          .filter((c): c is Camera => c !== undefined);
+
+        if (matched.length > 0) loadCameras(matched);
+        if (me.lastViewWallGridSize) setWallGridSize(me.lastViewWallGridSize);
+        setShowWall(me.lastViewShowWall);
+      })
+      .catch((err) => console.error("Không khôi phục được Camera Wall trước đó:", err));
+  }, [cameras, loadCameras]);
+
+  useEffect(() => {
+    if (!hasRestoredLastView.current) return;
+
+    const timeout = setTimeout(() => {
+      saveLastView({
+        cameraIds: selectedCameras.map((c) => c.id),
+        wallGridSize,
+        showWall,
+      }).catch((err) => console.error("Không lưu được trạng thái Camera Wall:", err));
+    }, 1500);
+
+    return () => clearTimeout(timeout);
+  }, [selectedCameras, wallGridSize, showWall]);
+
   const { zoneCameras } = useZoneCamera(filtered, selectedZone);
   const { camerasInRadius } = useRadiusCameras(
     cameras,
