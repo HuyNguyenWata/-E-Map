@@ -13,6 +13,7 @@ import useBookmarks from "../hooks/useBookmarks";
 import useEventClips from "../hooks/useEventClips";
 import ZoomableVideo from "./ZoomableVideo";
 import RecordingList from "./RecordingList";
+import Modal from "./Modal";
 import { useAuth } from "../auth/AuthContext";
 import { exportRecording, downloadEventClip } from "../api/client";
 interface Props {
@@ -53,6 +54,8 @@ function CameraDetailPanel({
   const [savingBookmark, setSavingBookmark] = useState(false);
   const { clips: eventClips, remove: removeEventClip } = useEventClips(camera?.id ?? null);
   const [downloadingClipId, setDownloadingClipId] = useState<number | null>(null);
+  const [loadingPreviewId, setLoadingPreviewId] = useState<number | null>(null);
+  const [previewClip, setPreviewClip] = useState<{ label: string; url: string } | null>(null);
 
   // Đổi camera thì bỏ chọn bản ghi cũ, quay về xem trực tiếp.
   useEffect(() => {
@@ -81,6 +84,25 @@ function CameraDetailPanel({
       const minutes = Math.round(truncatedToSeconds / 60);
       return `Đoạn ghi hình dài hơn ${minutes} phút — chỉ xuất ${minutes} phút đầu tiên.`;
     }
+  };
+
+  const handlePreviewEventClip = async (clipId: number, label: string) => {
+    setLoadingPreviewId(clipId);
+    try {
+      const blob = await downloadEventClip(clipId);
+      const url = URL.createObjectURL(blob);
+      setPreviewClip({ label, url });
+    } catch (err) {
+      console.error("Không xem được clip:", err);
+      alert(err instanceof Error ? err.message : "Xem clip thất bại");
+    } finally {
+      setLoadingPreviewId(null);
+    }
+  };
+
+  const handleClosePreview = () => {
+    if (previewClip) URL.revokeObjectURL(previewClip.url);
+    setPreviewClip(null);
   };
 
   const handleDownloadEventClip = async (clipId: number, label: string) => {
@@ -357,6 +379,16 @@ function CameraDetailPanel({
                 )}
               </div>
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                {c.status === "ready" && (
+                  <button
+                    className="btn btn-icon btn-ghost"
+                    title="Xem clip"
+                    disabled={loadingPreviewId === c.id}
+                    onClick={() => handlePreviewEventClip(c.id, c.label)}
+                  >
+                    {loadingPreviewId === c.id ? "⏳" : "▶️"}
+                  </button>
+                )}
                 {c.status === "ready" && hasPermission("ExportRecording") && (
                   <button
                     className="btn btn-icon btn-ghost"
@@ -387,6 +419,17 @@ function CameraDetailPanel({
       <EventFilter value={filter} onChange={setFilter} />
 
       <EventTimeline events={events} />
+
+      <Modal open={previewClip !== null} title={previewClip?.label ?? ""} onClose={handleClosePreview} width={720}>
+        {previewClip && (
+          <video
+            src={previewClip.url}
+            controls
+            autoPlay
+            style={{ width: "100%", borderRadius: "var(--radius-md)", background: "#000" }}
+          />
+        )}
+      </Modal>
     </div>
   );
 }
