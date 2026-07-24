@@ -10,10 +10,11 @@ import EventFilter from "./EventFilter";
 import useCameraEvents from "../hooks/useCameraEvents";
 import useCameraRecordings from "../hooks/useCameraRecordings";
 import useBookmarks from "../hooks/useBookmarks";
-import HlsVideo from "./HlsVideo";
+import useEventClips from "../hooks/useEventClips";
+import ZoomableVideo from "./ZoomableVideo";
 import RecordingList from "./RecordingList";
 import { useAuth } from "../auth/AuthContext";
-import { exportRecording } from "../api/client";
+import { exportRecording, downloadEventClip } from "../api/client";
 interface Props {
   camera: Camera | null;
 
@@ -50,6 +51,8 @@ function CameraDetailPanel({
   const { bookmarks, add: addBookmark, remove: removeBookmark } = useBookmarks(camera?.id ?? null);
   const [bookmarkLabel, setBookmarkLabel] = useState("");
   const [savingBookmark, setSavingBookmark] = useState(false);
+  const { clips: eventClips, remove: removeEventClip } = useEventClips(camera?.id ?? null);
+  const [downloadingClipId, setDownloadingClipId] = useState<number | null>(null);
 
   // Đổi camera thì bỏ chọn bản ghi cũ, quay về xem trực tiếp.
   useEffect(() => {
@@ -77,6 +80,24 @@ function CameraDetailPanel({
     if (truncatedToSeconds !== null) {
       const minutes = Math.round(truncatedToSeconds / 60);
       return `Đoạn ghi hình dài hơn ${minutes} phút — chỉ xuất ${minutes} phút đầu tiên.`;
+    }
+  };
+
+  const handleDownloadEventClip = async (clipId: number, label: string) => {
+    setDownloadingClipId(clipId);
+    try {
+      const blob = await downloadEventClip(clipId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${label.replace(/[^\p{L}\p{N}]+/gu, "_")}_${clipId}.mp4`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Không tải được clip:", err);
+      alert(err instanceof Error ? err.message : "Tải clip thất bại");
+    } finally {
+      setDownloadingClipId(null);
     }
   };
 
@@ -206,13 +227,14 @@ function CameraDetailPanel({
         )}
       </div>
 
-      <HlsVideo
+      <ZoomableVideo
         src={selectedRecording?.playbackUrl ?? camera.streamUrl}
         controls
         muted
         autoPlay
         style={{
           width: "100%",
+          aspectRatio: "16 / 9",
           marginTop: 8,
           borderRadius: "var(--radius-md)",
           background: "#000",
@@ -274,9 +296,16 @@ function CameraDetailPanel({
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600 }}>{b.label}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600 }}>
+                  {b.createdByUsername === null && (
+                    <span title="Tự động tạo theo sự kiện AI" style={{ marginRight: 4 }}>
+                      🤖
+                    </span>
+                  )}
+                  {b.label}
+                </div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                  {new Date(b.timestamp).toLocaleString("vi-VN")} · {b.createdByUsername}
+                  {new Date(b.timestamp).toLocaleString("vi-VN")} · {b.createdByUsername ?? "Hệ thống"}
                 </div>
               </div>
               <button
@@ -286,6 +315,66 @@ function CameraDetailPanel({
               >
                 🗑️
               </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <hr />
+
+      <h3 style={{ marginBottom: 10 }}>🎬 Clip sự kiện tự động</h3>
+
+      {eventClips.length === 0 ? (
+        <div className="empty-state">Chưa có clip nào — tự động tạo khi có cảnh báo AI</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 4 }}>
+          {eventClips.map((c) => (
+            <div
+              key={c.id}
+              className="card"
+              style={{
+                padding: "8px 10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600 }}>{c.label}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  {new Date(c.eventTime).toLocaleString("vi-VN")} · {c.durationSeconds}s
+                </div>
+                {c.status === "pending" && (
+                  <span className="badge badge-offline" style={{ marginTop: 4 }}>
+                    ⏳ Đang xử lý...
+                  </span>
+                )}
+                {c.status === "failed" && (
+                  <span className="badge badge-critical" title={c.failureReason ?? ""} style={{ marginTop: 4 }}>
+                    ⚠️ Lỗi xuất clip
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                {c.status === "ready" && hasPermission("ExportRecording") && (
+                  <button
+                    className="btn btn-icon btn-ghost"
+                    title="Tải clip"
+                    disabled={downloadingClipId === c.id}
+                    onClick={() => handleDownloadEventClip(c.id, c.label)}
+                  >
+                    {downloadingClipId === c.id ? "⏳" : "⬇️"}
+                  </button>
+                )}
+                <button
+                  className="btn btn-icon btn-ghost"
+                  title={t("common.delete")}
+                  onClick={() => removeEventClip(c.id)}
+                >
+                  🗑️
+                </button>
+              </div>
             </div>
           ))}
         </div>

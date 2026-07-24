@@ -26,3 +26,26 @@ export interface PlateDetection {
   matchedListType: PlateListType | null;
   inWatchedZone: boolean;
 }
+
+// B4 — vùng giám sát biển số vẽ tự do (polygon/circle) theo GPS, độc lập Zone.
+export type AnprWatchAreaShape = "polygon" | "circle";
+
+export interface AnprWatchArea {
+  id: number;
+  name: string;
+  enabled: boolean;
+  shape: AnprWatchAreaShape;
+  polygon: [number, number][];
+  centerLatitude: number | null;
+  centerLongitude: number | null;
+  radiusMeters: number | null;
+}
+
+export interface CreateAnprWatchAreaInput {
+  name: string;
+  shape: AnprWatchAreaShape;
+  polygon?: [number, number][];
+  centerLatitude?: number;
+  centerLongitude?: number;
+  radiusMeters?: number;
+}

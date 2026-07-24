@@ -17,6 +17,10 @@ interface Props {
 
   onToggleDrawZone: () => void;
 
+  drawAnprArea: boolean;
+
+  onToggleDrawAnprArea: () => void;
+
   radiusMode: boolean;
 
   onToggleRadiusMode: () => void;
@@ -26,6 +30,8 @@ interface Props {
   onOpenFace: () => void;
 
   onOpenBehavior: () => void;
+
+  onOpenVca: () => void;
 }
 
 function MapToolbar({
@@ -42,11 +48,14 @@ function MapToolbar({
   reset,
   drawZone,
   onToggleDrawZone,
+  drawAnprArea,
+  onToggleDrawAnprArea,
   radiusMode,
   onToggleRadiusMode,
   onOpenAnpr,
   onOpenFace,
   onOpenBehavior,
+  onOpenVca,
 }: Props) {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
@@ -87,6 +96,16 @@ function MapToolbar({
         </button>
       )}
 
+      {hasPermission("ManageAnprList") && (
+        <button
+          className={"btn" + (drawAnprArea ? " btn-active" : "")}
+          onClick={onToggleDrawAnprArea}
+          title="Vẽ vùng giám sát biển số tự do (độc lập Zone)"
+        >
+          {drawAnprArea ? "✕ Huỷ vẽ vùng ANPR" : "🚧 Vẽ vùng ANPR"}
+        </button>
+      )}
+
       <button
         className={"btn" + (radiusMode ? " btn-active" : "")}
         onClick={onToggleRadiusMode}
@@ -105,6 +124,10 @@ function MapToolbar({
 
       <button className="btn" onClick={onOpenBehavior} title={t("mapToolbar.behaviorTitle")}>
         {t("mapToolbar.behavior")}
+      </button>
+
+      <button className="btn" onClick={onOpenVca} title={t("mapToolbar.vcaTitle")}>
+        {t("mapToolbar.vca")}
       </button>
     </div>
   );

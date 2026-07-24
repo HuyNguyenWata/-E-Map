@@ -1,9 +1,14 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { SystemHealth } from "../types/systemHealth";
+import { getWatchdogStatus } from "../api/client";
+import type { WatchdogStatus } from "../api/client";
 
 interface Props {
   health: SystemHealth | null;
 }
+
+const WATCHDOG_POLL_MS = 15000;
 
 function statusColor(percent: number) {
   if (percent >= 90) return { color: "var(--danger)", icon: "🔴" };
@@ -52,6 +57,50 @@ function HealthRow({ label, percent, valueText }: { label: string; percent: numb
   );
 }
 
+function WatchdogRow() {
+  const { t } = useTranslation();
+  const [status, setStatus] = useState<WatchdogStatus | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const poll = () => {
+      getWatchdogStatus()
+        .then((s) => { if (!cancelled) setStatus(s); })
+        .catch(() => { /* im lặng — panel sức khoẻ không nên vỡ vì lỗi phụ này */ });
+    };
+
+    poll();
+    const timer = setInterval(poll, WATCHDOG_POLL_MS);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, []);
+
+  if (!status) return null;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        fontSize: 12,
+        marginTop: 12,
+        paddingTop: 10,
+        borderTop: "1px solid var(--border-soft)",
+      }}
+    >
+      <span style={{ color: "var(--text-muted)" }}>
+        {status.isHealthy ? "🟢" : "🔴"} {t("health.watchdog")}
+      </span>
+      <span style={{ fontWeight: 600, color: status.isHealthy ? "var(--text)" : "var(--danger)" }}>
+        {status.isHealthy
+          ? t("health.watchdogOk")
+          : t("health.watchdogFailing", { count: status.consecutiveFailures })}
+      </span>
+    </div>
+  );
+}
+
 function SystemHealthPanel({ health }: Props) {
   const { t } = useTranslation();
 
@@ -83,6 +132,8 @@ function SystemHealthPanel({ health }: Props) {
         percent={diskPercent}
         valueText={`${health.diskUsedGb.toFixed(0)} / ${health.diskTotalGb.toFixed(0)} GB`}
       />
+
+      <WatchdogRow />
     </div>
   );
 }

@@ -302,20 +302,28 @@ body,
   justify-content: flex-start;
 }
 
-/* ---------- Leaflet popup polish ---------- */
+/* ---------- OpenLayers popup/tooltip polish ---------- */
 
-.leaflet-popup-content-wrapper {
+.ol-popup-content {
+  background: var(--panel-bg, #fff);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
+  padding: 4px;
 }
 
-.leaflet-popup-content {
-  margin: 14px 16px;
-  font: inherit;
+.ol-tooltip-content {
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .marker-popup {
   width: 240px;
+  padding: 10px 12px;
 }
 
 .marker-popup h3 {

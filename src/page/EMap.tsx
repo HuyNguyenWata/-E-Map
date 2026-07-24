@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type Map from "ol/Map";
+import { fromLonLat } from "ol/proj";
+import { boundingExtent } from "ol/extent";
 import useZoneCamera from "../hooks/useZoneCamera";
 import EMapLayout from "../components/EMapLayout";
 
@@ -29,10 +32,12 @@ import ZoneFormModal from "../components/ZoneFormModal";
 import AnprPanel from "../components/AnprPanel";
 import FacePanel from "../components/FacePanel";
 import BehaviorPanel from "../components/BehaviorPanel";
+import VcaPanel from "../components/VcaPanel";
 import UsersPanel from "../components/UsersPanel";
 import useFavoriteCameras from "../hooks/useFavoriteCameras";
 import useFavoriteViews from "../hooks/useFavoriteViews";
 import { playCriticalAlertSound } from "../utils/sound";
+import { createAnprWatchArea } from "../api/client";
 import type { RoutePoint } from "../components/PlateRouteLayer";
 function EMap() {
   const { cameras, updateCamera, upsertCamera, createCamera, deleteCamera, editCamera } =
@@ -60,6 +65,7 @@ function EMap() {
   const [showAnpr, setShowAnpr] = useState(false);
   const [showFace, setShowFace] = useState(false);
   const [showBehavior, setShowBehavior] = useState(false);
+  const [showVca, setShowVca] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [routePlate, setRoutePlate] = useState<string | null>(null);
   const [routePoints, setRoutePoints] = useState<RoutePoint[]>([]);
@@ -95,6 +101,7 @@ function EMap() {
   }, [alerts, cameras]);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [drawZone, setDrawZone] = useState(false);
+  const [drawAnprArea, setDrawAnprArea] = useState(false);
   const [showCamera, setShowCamera] = useState(true);
 
   const [radiusMode, setRadiusMode] = useState(false);
@@ -104,7 +111,7 @@ function EMap() {
   const [radiusValue, setRadiusValue] = useState(500);
   const [radiusKeyword, setRadiusKeyword] = useState("");
 
-  const [map, setMap] = useState<any>(null);
+  const [map, setMap] = useState<Map | null>(null);
   const [showWall, setShowWall] = useState(false);
   const [wallGridSize, setWallGridSize] = useState(4);
   const { zoneCameras } = useZoneCamera(filtered, selectedZone);
@@ -131,11 +138,9 @@ function EMap() {
   const resetMap = () => {
     if (!map) return;
 
-    map.setView(
-      [10.776889, 106.700806],
-
-      15,
-    );
+    const view = map.getView();
+    view.setCenter(fromLonLat([106.700806, 10.776889]));
+    view.setZoom(15);
   };
   const fullscreen = () => {
     const element = document.documentElement;
@@ -148,6 +153,20 @@ function EMap() {
     setPendingPolygon(polygon);
     setZoneFormOpen(true);
     setDrawZone(false);
+  }, []);
+
+  // B4 — vẽ vùng giám sát biển số tự do (polygon), độc lập Zone hành chính —
+  // dùng lại đúng ZoneEditor (interaction Draw sẵn có), chỉ khác điểm đến khi lưu.
+  const handleCreateAnprArea = useCallback(async (polygon: [number, number][]) => {
+    setDrawAnprArea(false);
+    const name = window.prompt("Tên vùng giám sát biển số:", "Vùng giám sát mới");
+    if (!name) return;
+
+    try {
+      await createAnprWatchArea({ name, shape: "polygon", polygon });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Tạo vùng giám sát thất bại");
+    }
   }, []);
 
   const handleOpenAddCamera = () => {
@@ -169,6 +188,13 @@ function EMap() {
 
   const toggleDrawZone = () => {
     setDrawZone((prev) => !prev);
+    setDrawAnprArea(false);
+    setRadiusMode(false);
+  };
+
+  const toggleDrawAnprArea = () => {
+    setDrawAnprArea((prev) => !prev);
+    setDrawZone(false);
     setRadiusMode(false);
   };
 
@@ -178,6 +204,7 @@ function EMap() {
 
       if (next) {
         setDrawZone(false);
+        setDrawAnprArea(false);
       } else {
         setRadiusCenter(null);
         setRadiusKeyword("");
@@ -202,7 +229,11 @@ function EMap() {
     setRadiusKeyword(camera.name);
 
     if (map) {
-      map.flyTo([camera.latitude, camera.longitude], 17, { duration: 1.2 });
+      map.getView().animate({
+        center: fromLonLat([camera.longitude, camera.latitude]),
+        zoom: 17,
+        duration: 1200,
+      });
     }
   };
 
@@ -213,7 +244,7 @@ function EMap() {
 
   const handleLocateOnMap = (lat: number, lng: number) => {
     if (map) {
-      map.flyTo([lat, lng], 17, { duration: 1.2 });
+      map.getView().animate({ center: fromLonLat([lng, lat]), zoom: 17, duration: 1200 });
     }
   };
 
@@ -222,10 +253,8 @@ function EMap() {
     setRoutePoints(points);
 
     if (map && points.length > 0) {
-      map.fitBounds(
-        points.map((p) => [p.lat, p.lng] as [number, number]),
-        { padding: [60, 60] },
-      );
+      const extent = boundingExtent(points.map((p) => fromLonLat([p.lng, p.lat])));
+      map.getView().fit(extent, { padding: [60, 60, 60, 60], duration: 500, maxZoom: 18 });
     }
   };
 
@@ -305,6 +334,8 @@ function EMap() {
             onSelectZone={setSelectedZone}
             drawZone={drawZone}
             onCreateZone={handleCreateZone}
+            drawAnprArea={drawAnprArea}
+            onCreateAnprArea={handleCreateAnprArea}
             radiusMode={radiusMode}
             radiusCenter={radiusCenter}
             radiusValue={radiusValue}
@@ -330,11 +361,14 @@ function EMap() {
               reset={resetMap}
               drawZone={drawZone}
               onToggleDrawZone={toggleDrawZone}
+              drawAnprArea={drawAnprArea}
+              onToggleDrawAnprArea={toggleDrawAnprArea}
               radiusMode={radiusMode}
               onToggleRadiusMode={toggleRadiusMode}
               onOpenAnpr={() => setShowAnpr(true)}
               onOpenFace={() => setShowFace(true)}
               onOpenBehavior={() => setShowBehavior(true)}
+              onOpenVca={() => setShowVca(true)}
             />
           </div>
 
@@ -456,6 +490,8 @@ function EMap() {
       {showFace && <FacePanel onClose={() => setShowFace(false)} />}
 
       {showBehavior && <BehaviorPanel onClose={() => setShowBehavior(false)} cameras={cameras} />}
+
+      {showVca && <VcaPanel onClose={() => setShowVca(false)} cameras={cameras} />}
 
       {showUsers && <UsersPanel onClose={() => setShowUsers(false)} zones={zones} />}
 

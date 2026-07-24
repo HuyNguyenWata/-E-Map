@@ -9,10 +9,12 @@ import {
   restoreBackup,
   getScheduledBackups,
   runScheduledBackupNow,
+  getScheduledRestartStatus,
+  triggerScheduledRestartNow,
 } from "../api/client";
 import type { ManagedUser, Role } from "../types/user";
 import type { Zone } from "../types/zone";
-import type { ScheduledBackupFile } from "../api/client";
+import type { ScheduledBackupFile, ScheduledRestartStatus } from "../api/client";
 
 interface Props {
   onClose: () => void;
@@ -129,6 +131,45 @@ function UsersPanel({ onClose, zones }: Props) {
     }
   };
 
+  // --- A11/H18: lập lịch tự khởi động lại hệ thống định kỳ ---
+  const [restartStatus, setRestartStatus] = useState<ScheduledRestartStatus | null>(null);
+  const [restartError, setRestartError] = useState<string | null>(null);
+  const [restartMessage, setRestartMessage] = useState<string | null>(null);
+  const [triggeringRestart, setTriggeringRestart] = useState(false);
+
+  useEffect(() => {
+    getScheduledRestartStatus()
+      .then(setRestartStatus)
+      .catch((err) => setRestartError(err instanceof Error ? err.message : "Không tải được trạng thái"));
+  }, []);
+
+  const dayLabels: Record<string, string> = {
+    Sunday: "CN",
+    Monday: "T2",
+    Tuesday: "T3",
+    Wednesday: "T4",
+    Thursday: "T5",
+    Friday: "T6",
+    Saturday: "T7",
+  };
+
+  const handleTriggerRestartNow = async () => {
+    if (!confirm("Hệ thống sẽ tự khởi động lại sau ~1 giây — mọi kết nối đang xem trực tiếp sẽ tạm gián đoạn vài giây. Tiếp tục?"))
+      return;
+
+    setTriggeringRestart(true);
+    setRestartError(null);
+    setRestartMessage(null);
+    try {
+      const res = await triggerScheduledRestartNow();
+      setRestartMessage(res.message);
+    } catch (err) {
+      setRestartError(err instanceof Error ? err.message : "Khởi động lại thất bại");
+    } finally {
+      setTriggeringRestart(false);
+    }
+  };
+
   const formatBytes = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -140,6 +181,8 @@ function UsersPanel({ onClose, zones }: Props) {
   const [newPassword, setNewPassword] = useState("");
   const [newRoleId, setNewRoleId] = useState<number | null>(null);
   const [newZoneIds, setNewZoneIds] = useState<number[]>([]);
+  // H21 — Ldap: mật khẩu do LDAP xác thực, không nhập ở đây.
+  const [newAuthProvider, setNewAuthProvider] = useState<"local" | "ldap">("local");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -151,8 +194,13 @@ function UsersPanel({ onClose, zones }: Props) {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUsername.trim() || !newPassword.trim() || newRoleId === null) {
-      setCreateError("Cần nhập tên đăng nhập, mật khẩu và chọn role");
+    const needsPassword = newAuthProvider === "local";
+    if (!newUsername.trim() || (needsPassword && !newPassword.trim()) || newRoleId === null) {
+      setCreateError(
+        needsPassword
+          ? "Cần nhập tên đăng nhập, mật khẩu và chọn role"
+          : "Cần nhập tên đăng nhập và chọn role",
+      );
       return;
     }
 
@@ -162,14 +210,16 @@ function UsersPanel({ onClose, zones }: Props) {
     try {
       await createUser({
         username: newUsername.trim(),
-        password: newPassword,
+        password: needsPassword ? newPassword : "",
         roleId: newRoleId,
         zoneIds: newZoneIds,
+        authProvider: newAuthProvider,
       });
       setNewUsername("");
       setNewPassword("");
       setNewRoleId(null);
       setNewZoneIds([]);
+      setNewAuthProvider("local");
       await refresh();
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Tạo user thất bại");
@@ -204,6 +254,55 @@ function UsersPanel({ onClose, zones }: Props) {
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Đổi quyền camera thất bại");
+    } finally {
+      setSavingUserId(null);
+    }
+  };
+
+  // --- A12: khung giờ được phép dùng quyền, theo từng user ---
+  const minutesToHHmm = (m: number | null) => {
+    if (m === null) return "";
+    const h = Math.floor(m / 60)
+      .toString()
+      .padStart(2, "0");
+    const mm = (m % 60).toString().padStart(2, "0");
+    return `${h}:${mm}`;
+  };
+  const hhmmToMinutes = (v: string): number | null => {
+    if (!v) return null;
+    const [h, m] = v.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const [timeWindowDrafts, setTimeWindowDrafts] = useState<Record<number, { start: string; end: string }>>({});
+
+  const draftFor = (u: ManagedUser) =>
+    timeWindowDrafts[u.id] ?? {
+      start: minutesToHHmm(u.timeWindowStartMinutes),
+      end: minutesToHHmm(u.timeWindowEndMinutes),
+    };
+
+  const setDraft = (userId: number, patch: Partial<{ start: string; end: string }>) => {
+    setTimeWindowDrafts((prev) => ({ ...prev, [userId]: { ...draftFor(users.find((u) => u.id === userId)!), ...prev[userId], ...patch } }));
+  };
+
+  const handleSaveTimeWindow = async (u: ManagedUser) => {
+    const draft = draftFor(u);
+    setSavingUserId(u.id);
+    try {
+      await updateUser(u.id, {
+        updateTimeWindow: true,
+        timeWindowStartMinutes: hhmmToMinutes(draft.start),
+        timeWindowEndMinutes: hhmmToMinutes(draft.end),
+      });
+      setTimeWindowDrafts((prev) => {
+        const next = { ...prev };
+        delete next[u.id];
+        return next;
+      });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Đặt khung giờ thất bại");
     } finally {
       setSavingUserId(null);
     }
@@ -275,14 +374,43 @@ function UsersPanel({ onClose, zones }: Props) {
             </div>
 
             <div style={{ marginBottom: 10 }}>
-              <span className="field-label">Mật khẩu</span>
-              <input
-                type="password"
-                className="text-input"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
+              <span className="field-label">Xác thực</span>
+              <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+                  <input
+                    type="radio"
+                    checked={newAuthProvider === "local"}
+                    onChange={() => setNewAuthProvider("local")}
+                  />
+                  Mật khẩu cục bộ
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+                  <input
+                    type="radio"
+                    checked={newAuthProvider === "ldap"}
+                    onChange={() => setNewAuthProvider("ldap")}
+                  />
+                  AD/LDAP
+                </label>
+              </div>
             </div>
+
+            {newAuthProvider === "local" ? (
+              <div style={{ marginBottom: 10 }}>
+                <span className="field-label">Mật khẩu</span>
+                <input
+                  type="password"
+                  className="text-input"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+            ) : (
+              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
+                Mật khẩu do máy chủ AD/LDAP xác thực khi đăng nhập — không nhập ở đây. Tên
+                đăng nhập phải khớp đúng tài khoản LDAP.
+              </p>
+            )}
 
             <div style={{ marginBottom: 10 }}>
               <span className="field-label">Role (quyền theo chức năng)</span>
@@ -419,6 +547,57 @@ function UsersPanel({ onClose, zones }: Props) {
               </div>
             )}
           </div>
+
+          <h3 className="panel-title" style={{ marginTop: 20 }}>
+            🔁 Lập lịch tự khởi động lại hệ thống
+          </h3>
+
+          <div className="panel-block" style={{ padding: 14 }}>
+            {restartStatus === null ? (
+              <div style={{ fontSize: 12, color: "var(--text-faint)" }}>Đang tải...</div>
+            ) : (
+              <>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
+                  {restartStatus.enabled ? (
+                    <>
+                      Đang bật — tự khởi động lại lúc <b>{restartStatus.timeOfDay}</b>{" "}
+                      {restartStatus.daysOfWeek.length === 0
+                        ? "mỗi ngày"
+                        : `vào ${restartStatus.daysOfWeek.map((d) => dayLabels[d] ?? d).join(", ")}`}
+                      . Cấu hình trong <code>appsettings.json</code> (mục{" "}
+                      <code>ScheduledRestart</code>).
+                    </>
+                  ) : (
+                    <>
+                      Đang tắt — bật bằng cách đặt <code>ScheduledRestart.Enabled = true</code> trong{" "}
+                      <code>appsettings.json</code>.
+                    </>
+                  )}
+                </p>
+
+                {restartStatus.lastTriggeredAtLocal && (
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
+                    Lần gần nhất: {new Date(restartStatus.lastTriggeredAtLocal).toLocaleString("vi-VN")}
+                  </p>
+                )}
+
+                <button
+                  className="btn btn-block btn-danger"
+                  onClick={handleTriggerRestartNow}
+                  disabled={triggeringRestart}
+                >
+                  {triggeringRestart ? "Đang khởi động lại..." : "⚠ Khởi động lại ngay (test/thủ công)"}
+                </button>
+
+                {restartError && (
+                  <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>{restartError}</p>
+                )}
+                {restartMessage && (
+                  <p style={{ color: "var(--success)", fontSize: 12, marginTop: 8 }}>{restartMessage}</p>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Cột phải: danh sách user */}
@@ -432,7 +611,18 @@ function UsersPanel({ onClose, zones }: Props) {
             {users.map((u) => (
               <div key={u.id} className="card" style={{ padding: 12, opacity: savingUserId === u.id ? 0.6 : 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                  <b style={{ fontSize: 14 }}>{u.username}</b>
+                  <b style={{ fontSize: 14 }}>
+                    {u.username}
+                    {u.authProvider === "ldap" && (
+                      <span
+                        className="badge badge-info"
+                        style={{ marginLeft: 6, fontSize: 10, verticalAlign: "middle" }}
+                        title="Đăng nhập qua AD/LDAP"
+                      >
+                        LDAP
+                      </span>
+                    )}
+                  </b>
 
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <select
@@ -479,6 +669,36 @@ function UsersPanel({ onClose, zones }: Props) {
                       {zone.name}
                     </label>
                   ))}
+                </div>
+
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, marginBottom: 4 }}>
+                  Khung giờ được dùng quyền — bỏ trống cả 2 = không giới hạn:
+                </div>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input
+                    type="time"
+                    className="text-input"
+                    style={{ fontSize: 12, padding: "2px 6px", width: 100 }}
+                    value={draftFor(u).start}
+                    disabled={savingUserId === u.id}
+                    onChange={(e) => setDraft(u.id, { start: e.target.value })}
+                  />
+                  <span style={{ fontSize: 12 }}>→</span>
+                  <input
+                    type="time"
+                    className="text-input"
+                    style={{ fontSize: 12, padding: "2px 6px", width: 100 }}
+                    value={draftFor(u).end}
+                    disabled={savingUserId === u.id}
+                    onChange={(e) => setDraft(u.id, { end: e.target.value })}
+                  />
+                  <button
+                    className="btn btn-sm"
+                    disabled={savingUserId === u.id}
+                    onClick={() => handleSaveTimeWindow(u)}
+                  >
+                    Lưu
+                  </button>
                 </div>
               </div>
             ))}

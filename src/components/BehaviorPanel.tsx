@@ -421,7 +421,13 @@ function BehaviorPanel({ onClose, cameras }: Props) {
                       ? `👥 Đám đông (${d.personCount} người)`
                       : d.type === "litter"
                         ? "🗑️ Vứt rác"
-                        : "🔫 Vũ khí"}
+                        : d.type === "weapon"
+                          ? "🔫 Vũ khí"
+                          : d.type === "lineCrossing"
+                            ? `🚧 Qua line "${d.vcaLineName ?? ""}" (${d.direction ?? ""})`
+                            : d.type === "zoneIntrusion"
+                              ? `⬛ Xâm nhập vùng "${d.vcaZoneName ?? ""}"`
+                              : `🕓 Lảng vảng "${d.vcaZoneName ?? ""}" (${d.dwellSeconds ?? "?"}s)`}
                   </b>
                   {d.triggeredAlert ? (
                     <span className="badge badge-critical">🚨</span>

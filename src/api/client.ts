@@ -6,12 +6,14 @@ import type { AlertStats } from "../types/alertStats";
 import type { ZoneAlertStat } from "../types/zoneStats";
 import type { RecordingSegment } from "../types/recording";
 import type { LoginResponse } from "../types/auth";
-import type { CreatePlateEntryInput, LicensePlateEntry, PlateDetection } from "../types/anpr";
+import type { CreatePlateEntryInput, LicensePlateEntry, PlateDetection, AnprWatchArea, CreateAnprWatchAreaInput } from "../types/anpr";
 import type { AttendanceSummary, FaceDetection, FaceSettings, Person } from "../types/face";
 import type { BehaviorDetection, BehaviorSettings, BehaviorType } from "../types/behavior";
 import type { ManagedUser, Role, CreateUserInput, UpdateUserInput } from "../types/user";
 import type { FavoriteView, CreateFavoriteViewInput } from "../types/favorite";
 import type { VideoBookmark, CreateBookmarkInput } from "../types/bookmark";
+import type { VcaCameraConfig, VcaLine, VcaZone, CreateVcaLineInput, CreateVcaZoneInput } from "../types/vca";
+import type { EventClip } from "../types/eventClip";
 import { API_BASE_URL } from "./config";
 import { getToken, notifyUnauthorized } from "./authToken";
 
@@ -103,6 +105,21 @@ export function runScheduledBackupNow(): Promise<ScheduledBackupFile> {
   return request<ScheduledBackupFile>("/api/backup/scheduled/run-now", { method: "POST" });
 }
 
+export interface ScheduledRestartStatus {
+  enabled: boolean;
+  timeOfDay: string;
+  daysOfWeek: string[];
+  lastTriggeredAtLocal: string | null;
+}
+
+export function getScheduledRestartStatus(): Promise<ScheduledRestartStatus> {
+  return request<ScheduledRestartStatus>("/api/system/scheduled-restart");
+}
+
+export function triggerScheduledRestartNow(): Promise<{ message: string }> {
+  return request<{ message: string }>("/api/system/scheduled-restart/run-now", { method: "POST" });
+}
+
 export function getRoles(): Promise<Role[]> {
   return request<Role[]>("/api/auth/roles");
 }
@@ -170,6 +187,40 @@ export function createBookmark(input: CreateBookmarkInput): Promise<VideoBookmar
 
 export function deleteBookmark(id: number): Promise<void> {
   return request<void>(`/api/bookmarks/${id}`, { method: "DELETE" });
+}
+
+export function getEventClips(cameraId?: number, take = 20): Promise<EventClip[]> {
+  const params = new URLSearchParams({ take: String(take) });
+  if (cameraId !== undefined) params.set("cameraId", String(cameraId));
+  return request<EventClip[]>(`/api/event-clips?${params}`);
+}
+
+export async function downloadEventClip(id: number): Promise<Blob> {
+  const token = getToken();
+
+  const res = await fetch(`${API_BASE_URL}/api/event-clips/${id}/download`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (res.status === 401) {
+    notifyUnauthorized();
+    throw new Error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
+  }
+  if (res.status === 403) {
+    throw new Error("Bạn không có quyền tải clip");
+  }
+  if (res.status === 409) {
+    throw new Error("Clip chưa sẵn sàng — thử lại sau ít phút");
+  }
+  if (!res.ok) {
+    throw new Error(`Tải clip thất bại: ${res.status} ${res.statusText}`);
+  }
+
+  return res.blob();
+}
+
+export function deleteEventClip(id: number): Promise<void> {
+  return request<void>(`/api/event-clips/${id}`, { method: "DELETE" });
 }
 
 export interface DiscoveredDevice {
@@ -244,12 +295,49 @@ export function getSystemHealth(): Promise<SystemHealth> {
   return request<SystemHealth>("/api/system/health");
 }
 
+export interface WatchdogStatus {
+  isHealthy: boolean;
+  consecutiveFailures: number;
+  lastCheckAtUtc: string | null;
+  lastFailureReason: string | null;
+}
+
+export function getWatchdogStatus(): Promise<WatchdogStatus> {
+  return request<WatchdogStatus>("/api/system/watchdog");
+}
+
 export function getAlertStats(days = 7): Promise<AlertStats> {
   return request<AlertStats>(`/api/alerts/stats?days=${days}`);
 }
 
 export function getZoneStats(days = 7): Promise<ZoneAlertStat[]> {
   return request<ZoneAlertStat[]>(`/api/zones/stats?days=${days}`);
+}
+
+export function getVcaConfig(cameraId: number): Promise<VcaCameraConfig> {
+  return request<VcaCameraConfig>(`/api/vca/cameras/${cameraId}`);
+}
+
+export function createVcaLine(cameraId: number, data: CreateVcaLineInput): Promise<VcaLine> {
+  return request<VcaLine>(`/api/vca/cameras/${cameraId}/lines`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteVcaLine(id: number): Promise<void> {
+  return request<void>(`/api/vca/lines/${id}`, { method: "DELETE" });
+}
+
+export function createVcaZone(cameraId: number, data: CreateVcaZoneInput): Promise<VcaZone> {
+  return request<VcaZone>(`/api/vca/cameras/${cameraId}/zones`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteVcaZone(id: number): Promise<void> {
+  return request<void>(`/api/vca/zones/${id}`, { method: "DELETE" });
 }
 
 export function getCameraRecordings(cameraId: number): Promise<RecordingSegment[]> {
@@ -298,6 +386,28 @@ export function setZoneWatch(zoneId: number, enabled: boolean): Promise<Zone> {
     method: "PUT",
     body: JSON.stringify({ enabled }),
   });
+}
+
+export function getAnprWatchAreas(): Promise<AnprWatchArea[]> {
+  return request<AnprWatchArea[]>("/api/anpr/watch-areas");
+}
+
+export function createAnprWatchArea(input: CreateAnprWatchAreaInput): Promise<AnprWatchArea> {
+  return request<AnprWatchArea>("/api/anpr/watch-areas", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function setAnprWatchAreaEnabled(id: number, enabled: boolean): Promise<AnprWatchArea> {
+  return request<AnprWatchArea>(`/api/anpr/watch-areas/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+export function deleteAnprWatchArea(id: number): Promise<void> {
+  return request<void>(`/api/anpr/watch-areas/${id}`, { method: "DELETE" });
 }
 
 export function getPlateEntries(): Promise<LicensePlateEntry[]> {

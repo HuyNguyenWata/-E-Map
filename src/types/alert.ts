@@ -7,7 +7,10 @@ export type AlertType =
   | "crowd"
   | "weapon"
   | "spoof"
-  | "litter";
+  | "litter"
+  | "lineCrossing"
+  | "zoneIntrusion"
+  | "loitering";
 
 export type AlertSeverity = "info" | "warning" | "critical";
 

@@ -1,12 +1,13 @@
 import { useEffect } from "react";
-import { useMap } from "react-leaflet";
+import type Map from "ol/Map";
+import { useOlMap } from "../map/MapContext";
 
 interface Props {
-  onReady: (map: any) => void;
+  onReady: (map: Map) => void;
 }
 
 function MapController({ onReady }: Props) {
-  const map = useMap();
+  const map = useOlMap();
 
   useEffect(() => {
     onReady(map);

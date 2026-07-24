@@ -2,6 +2,9 @@ import type { AlertType, AlertSeverity } from "./alert";
 
 export type CameraStatus = "online" | "offline";
 
+// A20/H8
+export type RecordingMode = "continuous" | "scheduled" | "motionOnly";
+
 export interface Camera {
   id: number;
 
@@ -33,6 +36,17 @@ export interface Camera {
 
   // Camera thuộc zone nào
   zoneId?: number;
+
+  // A20/H8 — chế độ ghi hình.
+  recordingMode: RecordingMode;
+  recordingScheduleStartMinutes: number | null;
+  recordingScheduleEndMinutes: number | null;
+  motionRecordingSeconds: number;
+
+  // Chỉ dùng khi GỬI update (không phải field trả về từ server) — xem
+  // UpdateCameraDto phía backend: cần cờ riêng vì recordingScheduleStart/EndMinutes
+  // null tự nó không phân biệt được "không đổi" với "xoá lịch".
+  updateRecordingSchedule?: boolean;
 }
 
 export interface CreateCameraInput {
@@ -43,4 +57,8 @@ export interface CreateCameraInput {
   streamUrl: string;
   sourceRtspUrl?: string;
   zoneId?: number | null;
+  recordingMode?: RecordingMode;
+  recordingScheduleStartMinutes?: number | null;
+  recordingScheduleEndMinutes?: number | null;
+  motionRecordingSeconds?: number;
 }

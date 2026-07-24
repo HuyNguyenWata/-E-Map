@@ -74,6 +74,8 @@ const vi = {
     faceTitle: "Nhận dạng khuôn mặt & điểm danh",
     behavior: "🏃 Hành vi",
     behaviorTitle: "Phát hiện đám đông & vũ khí",
+    vca: "🚧 VCA",
+    vcaTitle: "Hàng rào ảo, đếm qua line, xâm nhập & lảng vảng",
   },
   leftPanel: {
     manageUsers: "👥 Người dùng",
@@ -99,11 +101,17 @@ const vi = {
     noRecordings: "Chưa có bản ghi nào cho camera này",
     noEvents: "Không có sự kiện",
     exportRecording: "Xuất đoạn này ra file mp4 (tối đa 5 phút đầu)",
+    zoomIn: "Phóng to",
+    zoomOut: "Thu nhỏ",
+    zoomReset: "Đặt lại",
   },
   health: {
     title: "🖥️ Sức khỏe Server",
     loading: "Đang tải dữ liệu server...",
     disk: "Ổ đĩa",
+    watchdog: "Watchdog",
+    watchdogOk: "Đang giám sát bình thường",
+    watchdogFailing: "Lỗi {{count}} lần liên tiếp",
   },
   eventTrend: {
     title: "📈 Xu hướng sự kiện (7 ngày)",

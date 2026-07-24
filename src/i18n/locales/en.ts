@@ -76,6 +76,8 @@ const en: TranslationShape = {
     faceTitle: "Face recognition & attendance",
     behavior: "🏃 Behavior",
     behaviorTitle: "Crowd & weapon detection",
+    vca: "🚧 VCA",
+    vcaTitle: "Virtual tripwire, line counting, zone intrusion & loitering",
   },
   leftPanel: {
     manageUsers: "👥 Users",
@@ -101,11 +103,17 @@ const en: TranslationShape = {
     noRecordings: "No recordings for this camera yet",
     noEvents: "No events",
     exportRecording: "Export this clip as mp4 (first 5 min max)",
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    zoomReset: "Reset",
   },
   health: {
     title: "🖥️ Server Health",
     loading: "Loading server data...",
     disk: "Disk",
+    watchdog: "Watchdog",
+    watchdogOk: "Monitoring normally",
+    watchdogFailing: "Failed {{count}}x in a row",
   },
   eventTrend: {
     title: "📈 Event Trend (7 days)",

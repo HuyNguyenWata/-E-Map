@@ -1,58 +1,54 @@
 import { useEffect } from "react";
-import { useMap } from "react-leaflet";
-
-import L from "leaflet";
-
-import "leaflet.heat";
-
+import HeatmapOlLayer from "ol/layer/Heatmap";
+import VectorSource from "ol/source/Vector";
+import Feature from "ol/Feature";
+import { Point } from "ol/geom";
+import { fromLonLat } from "ol/proj";
+import { useOlMap } from "../map/MapContext";
 import type { Camera } from "../types/camera";
 import type { CameraAlert } from "../types/alert";
 
 interface Props {
   cameras: Camera[];
-
   alerts: CameraAlert[];
 }
 
+const WEIGHT_KEY = "weight";
+
 function HeatmapLayer({ cameras, alerts }: Props) {
-  const map = useMap();
+  const map = useOlMap();
 
   useEffect(() => {
-    const points = cameras.map((camera) => {
-      const count = alerts.filter(
-        (alert) => alert.cameraId === camera.id,
-      ).length;
+    const counts = cameras.map(
+      (camera) => alerts.filter((alert) => alert.cameraId === camera.id).length,
+    );
+    const maxCount = Math.max(1, ...counts);
 
-      return [camera.latitude, camera.longitude, count || 0.2] as [
-        number,
-        number,
-        number,
-      ];
+    const features = cameras.map((camera, i) => {
+      const feature = new Feature(new Point(fromLonLat([camera.longitude, camera.latitude])));
+      // ol/layer/Heatmap muốn weight trong khoảng 0-1 (khác leaflet.heat nhận
+      // thẳng số nguyên) — chuẩn hoá theo giá trị lớn nhất, camera không có
+      // alert vẫn có 1 chấm mờ nhỏ (0.2 tương đối) giống hành vi bản Leaflet cũ.
+      const raw = counts[i] || 0.2;
+      feature.set(WEIGHT_KEY, Math.min(1, raw / maxCount));
+      return feature;
     });
 
-    const heatLayer = (L as any)
-      .heatLayer(points, {
-        radius: 40,
+    const layer = new HeatmapOlLayer({
+      source: new VectorSource({ features }),
+      weight: (feature) => feature.get(WEIGHT_KEY) as number,
+      radius: 22,
+      blur: 24,
+      // Khớp màu với HeatmapLegend.
+      gradient: ["#3b82f6", "#22d3ee", "#a3e635", "#facc15", "#ef4444"],
+    });
 
-        blur: 30,
-
-        maxZoom: 17,
-
-        // Khớp màu với HeatmapLegend
-        gradient: {
-          0.2: "#3b82f6",
-          0.4: "#22d3ee",
-          0.6: "#a3e635",
-          0.8: "#facc15",
-          1.0: "#ef4444",
-        },
-      })
-      .addTo(map);
+    map.addLayer(layer);
 
     return () => {
-      map.removeLayer(heatLayer);
+      map.removeLayer(layer);
     };
-  }, [cameras, alerts, map]);
+  }, [map, cameras, alerts]);
 
   return null;
 }

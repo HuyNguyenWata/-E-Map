@@ -1,6 +1,7 @@
 import { useState } from "react";
 import usePlateEntries from "../hooks/usePlateEntries";
 import usePlateDetections from "../hooks/usePlateDetections";
+import useAnprWatchAreas from "../hooks/useAnprWatchAreas";
 import { detectPlatesInImage } from "../api/anprService";
 import type { AnprDetectionResult } from "../api/anprService";
 import type { PlateListType } from "../types/anpr";
@@ -34,6 +35,47 @@ function AnprPanel({ onClose, onLocate, onShowRoute, zones, cameras, onToggleZon
 
   const { entries, loading: entriesLoading, addEntry, removeEntry } = usePlateEntries();
   const [zoneWatchPending, setZoneWatchPending] = useState<number | null>(null);
+
+  // B4 — vùng giám sát biển số vẽ tự do (polygon vẽ trên bản đồ, circle nhập tay).
+  const { areas: watchAreas, setEnabled: setWatchAreaEnabled, remove: removeWatchArea, create: createWatchArea } =
+    useAnprWatchAreas();
+  const [circleName, setCircleName] = useState("");
+  const [circleLat, setCircleLat] = useState("");
+  const [circleLng, setCircleLng] = useState("");
+  const [circleRadius, setCircleRadius] = useState("500");
+  const [creatingCircle, setCreatingCircle] = useState(false);
+  const [circleError, setCircleError] = useState<string | null>(null);
+
+  const handleCreateCircleArea = async () => {
+    const lat = Number(circleLat);
+    const lng = Number(circleLng);
+    const radius = Number(circleRadius);
+
+    if (!circleName.trim() || !Number.isFinite(lat) || !Number.isFinite(lng) || !(radius > 0)) {
+      setCircleError("Cần nhập tên, toạ độ tâm (lat/lng) và bán kính > 0");
+      return;
+    }
+
+    setCreatingCircle(true);
+    setCircleError(null);
+    try {
+      await createWatchArea({
+        name: circleName.trim(),
+        shape: "circle",
+        centerLatitude: lat,
+        centerLongitude: lng,
+        radiusMeters: radius,
+      });
+      setCircleName("");
+      setCircleLat("");
+      setCircleLng("");
+      setCircleRadius("500");
+    } catch (err) {
+      setCircleError(err instanceof Error ? err.message : "Tạo vùng thất bại");
+    } finally {
+      setCreatingCircle(false);
+    }
+  };
 
   const handleToggleZoneWatch = async (zoneId: number, enabled: boolean) => {
     setZoneWatchPending(zoneId);
@@ -296,6 +338,106 @@ function AnprPanel({ onClose, onLocate, onShowRoute, zones, cameras, onToggleZon
               </div>
             ))}
           </div>
+
+          <h3 className="panel-title" style={{ marginTop: 20 }}>
+            🚧 Vùng giám sát tự do (không phụ thuộc Zone)
+          </h3>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: -8, marginBottom: 10 }}>
+            Vẽ trực tiếp trên bản đồ (nút "🚧 Vẽ vùng ANPR" ở toolbar) cho vùng đa giác, hoặc
+            nhập toạ độ tâm + bán kính cho vùng tròn bên dưới. Camera nào có toạ độ rơi vào
+            vùng (bất kể Zone nào) đều được tính là đang giám sát.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+            {watchAreas.length === 0 ? (
+              <div className="empty-state">Chưa có vùng nào</div>
+            ) : (
+              watchAreas.map((area) => (
+                <div
+                  key={area.id}
+                  className="card"
+                  style={{ padding: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                >
+                  <div>
+                    <b style={{ fontSize: 13 }}>
+                      {area.shape === "circle" ? "⭕" : "⬛"} {area.name}
+                    </b>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      {area.shape === "circle"
+                        ? `Tròn, bán kính ${area.radiusMeters}m`
+                        : `Đa giác, ${area.polygon.length} điểm`}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {isAdmin ? (
+                      <input
+                        type="checkbox"
+                        checked={area.enabled}
+                        onChange={(e) => setWatchAreaEnabled(area.id, e.target.checked)}
+                      />
+                    ) : (
+                      <span className={"badge " + (area.enabled ? "badge-warning" : "badge-offline")}>
+                        {area.enabled ? "Đang bật" : "Tắt"}
+                      </span>
+                    )}
+                    {isAdmin && (
+                      <button
+                        className="btn btn-icon btn-ghost"
+                        title="Xoá"
+                        onClick={() => removeWatchArea(area.id)}
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {isAdmin && (
+            <div className="panel-block" style={{ padding: 12 }}>
+              <span className="field-label">Thêm vùng tròn (nhập toạ độ)</span>
+              <input
+                className="text-input"
+                placeholder="Tên vùng"
+                value={circleName}
+                onChange={(e) => setCircleName(e.target.value)}
+                style={{ marginBottom: 6 }}
+              />
+              <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                <input
+                  className="text-input"
+                  placeholder="Lat"
+                  value={circleLat}
+                  onChange={(e) => setCircleLat(e.target.value)}
+                />
+                <input
+                  className="text-input"
+                  placeholder="Lng"
+                  value={circleLng}
+                  onChange={(e) => setCircleLng(e.target.value)}
+                />
+                <input
+                  className="text-input"
+                  placeholder="Bán kính (m)"
+                  value={circleRadius}
+                  onChange={(e) => setCircleRadius(e.target.value)}
+                />
+              </div>
+              <button
+                className="btn btn-primary btn-block"
+                onClick={handleCreateCircleArea}
+                disabled={creatingCircle}
+              >
+                {creatingCircle ? "Đang tạo..." : "+ Tạo vùng tròn"}
+              </button>
+              {circleError && (
+                <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 6 }}>{circleError}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Cột giữa: Upload ảnh test */}

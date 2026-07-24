@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Modal from "./Modal";
 import { discoverOnvifCameras } from "../api/client";
 import type { DiscoveredDevice } from "../api/client";
-import type { Camera, CreateCameraInput } from "../types/camera";
+import type { Camera, CreateCameraInput, RecordingMode } from "../types/camera";
 import type { Zone } from "../types/zone";
 
 interface Props {
@@ -27,6 +27,23 @@ function CameraFormModal({ open, onClose, camera, zones, onCreate, onEdit }: Pro
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // A20/H8 — chế độ ghi hình.
+  const [recordingMode, setRecordingMode] = useState<RecordingMode>("continuous");
+  const [scheduleStart, setScheduleStart] = useState("00:00");
+  const [scheduleEnd, setScheduleEnd] = useState("23:59");
+  const [motionSeconds, setMotionSeconds] = useState("30");
+
+  const minutesToHHmm = (m: number | null, fallback: string) => {
+    if (m === null) return fallback;
+    const h = Math.floor(m / 60).toString().padStart(2, "0");
+    const mm = (m % 60).toString().padStart(2, "0");
+    return `${h}:${mm}`;
+  };
+  const hhmmToMinutes = (v: string) => {
+    const [h, m] = v.split(":").map(Number);
+    return h * 60 + m;
+  };
+
   useEffect(() => {
     if (!open) return;
 
@@ -38,6 +55,10 @@ function CameraFormModal({ open, onClose, camera, zones, onCreate, onEdit }: Pro
       setLatitude(String(camera.latitude));
       setLongitude(String(camera.longitude));
       setZoneId(camera.zoneId ? String(camera.zoneId) : "");
+      setRecordingMode(camera.recordingMode ?? "continuous");
+      setScheduleStart(minutesToHHmm(camera.recordingScheduleStartMinutes, "00:00"));
+      setScheduleEnd(minutesToHHmm(camera.recordingScheduleEndMinutes, "23:59"));
+      setMotionSeconds(String(camera.motionRecordingSeconds ?? 30));
     } else {
       setName("");
       setAddress("");
@@ -46,6 +67,10 @@ function CameraFormModal({ open, onClose, camera, zones, onCreate, onEdit }: Pro
       setLatitude("10.776889");
       setLongitude("106.700806");
       setZoneId("");
+      setRecordingMode("continuous");
+      setScheduleStart("00:00");
+      setScheduleEnd("23:59");
+      setMotionSeconds("30");
     }
 
     setError(null);
@@ -117,6 +142,11 @@ function CameraFormModal({ open, onClose, camera, zones, onCreate, onEdit }: Pro
           latitude: lat,
           longitude: lng,
           zoneId: zoneIdValue ?? undefined,
+          recordingMode,
+          updateRecordingSchedule: true,
+          recordingScheduleStartMinutes: hhmmToMinutes(scheduleStart),
+          recordingScheduleEndMinutes: hhmmToMinutes(scheduleEnd),
+          motionRecordingSeconds: Number(motionSeconds) || 30,
         });
       } else {
         await onCreate({
@@ -127,6 +157,10 @@ function CameraFormModal({ open, onClose, camera, zones, onCreate, onEdit }: Pro
           latitude: lat,
           longitude: lng,
           zoneId: zoneIdValue,
+          recordingMode,
+          recordingScheduleStartMinutes: hhmmToMinutes(scheduleStart),
+          recordingScheduleEndMinutes: hhmmToMinutes(scheduleEnd),
+          motionRecordingSeconds: Number(motionSeconds) || 30,
         });
       }
 
@@ -252,6 +286,53 @@ function CameraFormModal({ open, onClose, camera, zones, onCreate, onEdit }: Pro
               </option>
             ))}
           </select>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <span className="field-label">Chế độ ghi hình</span>
+          <select
+            className="select-input"
+            value={recordingMode}
+            onChange={(e) => setRecordingMode(e.target.value as RecordingMode)}
+            style={{ marginBottom: 8 }}
+          >
+            <option value="continuous">Liên tục</option>
+            <option value="scheduled">Theo lịch biểu</option>
+            <option value="motionOnly">Chỉ khi có chuyển động</option>
+          </select>
+
+          {recordingMode === "scheduled" && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="time"
+                className="text-input"
+                value={scheduleStart}
+                onChange={(e) => setScheduleStart(e.target.value)}
+              />
+              <span style={{ fontSize: 12 }}>→</span>
+              <input
+                type="time"
+                className="text-input"
+                value={scheduleEnd}
+                onChange={(e) => setScheduleEnd(e.target.value)}
+              />
+            </div>
+          )}
+
+          {recordingMode === "motionOnly" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12 }}>Ghi thêm sau chuyển động gần nhất:</span>
+              <input
+                type="number"
+                min={5}
+                className="text-input"
+                style={{ width: 70 }}
+                value={motionSeconds}
+                onChange={(e) => setMotionSeconds(e.target.value)}
+              />
+              <span style={{ fontSize: 12 }}>giây</span>
+            </div>
+          )}
         </div>
 
         {error && (

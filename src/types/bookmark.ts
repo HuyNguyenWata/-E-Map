@@ -4,7 +4,8 @@ export interface VideoBookmark {
   cameraName: string;
   label: string;
   timestamp: string;
-  createdByUsername: string;
+  // null = bookmark tự động tạo bởi hệ thống theo sự kiện AI (H14).
+  createdByUsername: string | null;
   createdAt: string;
 }
 

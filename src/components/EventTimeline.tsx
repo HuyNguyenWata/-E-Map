@@ -45,7 +45,13 @@ function EventTimeline({ events }: Props) {
                           ? "🎭"
                           : event.type === "litter"
                             ? "🗑️"
-                            : "⚠️"}
+                            : event.type === "lineCrossing"
+                              ? "🚧"
+                              : event.type === "zoneIntrusion"
+                                ? "⬛"
+                                : event.type === "loitering"
+                                  ? "🕓"
+                                  : "⚠️"}
             </div>
 
             <div>
