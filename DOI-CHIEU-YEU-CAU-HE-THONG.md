@@ -19,7 +19,7 @@ Chú thích trạng thái: ✅ Đã có · ⚠️ Có một phần / khác cách
 | Chấp nhận H.264/H.265/MJPEG/MPEG-4, độ phân giải HD/FullHD/4K | ✅ | Qua MediaMTX (`mediamtx.yml`) — passthrough RTSP, không transcode nên phụ thuộc camera nguồn |
 | Tích hợp >90 hãng camera, hybrid Analog+IP | ⚠️ | Hỗ trợ mọi camera RTSP chuẩn + auto-discover ONVIF (WS-Discovery), nhưng chưa test/certify theo danh sách hãng cụ thể; không có driver riêng cho DVR/camera Analog (không hybrid) |
 | Windows Server 2012/2016, Windows 7/8/10/11 | ⚠️ | Backend .NET 8 dùng `UseWindowsService` (chạy được như Windows Service), nhưng .NET 8 chính thức chỉ hỗ trợ từ Windows 10/Server 2016 trở lên |
-| Desktop app, Monitoring app, Web browser, Mobile iOS/Android | ⚠️ | Có **Web client** (`emap-demo`, chạy trên Chrome/Edge/Firefox). Từng có **Desktop client WPF** (`wata-desktop-client`) nhưng **đã bị xoá** theo yêu cầu trước đó — hiện KHÔNG còn desktop app. Chưa có Monitoring app riêng, chưa có app Mobile iOS/Android |
+| Desktop app, Monitoring app, Web browser, Mobile iOS/Android | ⚠️ | Có **Web client** (`emap-demo`, chạy trên Chrome/Edge/Firefox). **Desktop client** đang được xây lại (`wata-desktop-client`, bản WPF cũ đã bị xoá) — lần này dùng **Avalonia UI (.NET 8)** để đa nền tảng, hiện mới ở giai đoạn scaffold + player RTSP thử nghiệm (software decode qua FFmpeg.AutoGen), **chưa** kết nối backend/danh sách camera/hardware decode. Xem `wata-desktop-client/README.md`. Chưa có Monitoring app riêng, chưa có app Mobile iOS/Android |
 | Giám sát CPU/RAM/băng thông/ổ cứng, tình trạng ghi hình camera | ⚠️ | `SystemHealthMonitorService` đã lấy CPU/RAM/Ổ đĩa (Windows PerformanceCounter) đẩy qua SignalR — chưa có băng thông mạng, chưa track riêng "thời gian ghi hình" từng camera (chỉ có trạng thái online/offline) |
 | Tích hợp API/SDK bên thứ 3 | ⚠️ | Có REST API (`VMS.Api` controllers) nhưng chưa đóng gói SDK chính thức (không có Client Kit cho VB.NET/Delphi/C++) |
 | HTTP API đơn giản hoá cho bên thứ 3 | ✅ | Toàn bộ tương tác đã là REST/JSON qua HTTP |
@@ -62,7 +62,7 @@ Chú thích trạng thái: ✅ Đã có · ⚠️ Có một phần / khác cách
 |---|---|---|
 | Nhiều client PC giám sát cùng lúc | ✅ | Web client, nhiều tab/máy đều gọi chung 1 backend |
 | Tự động bật lại chế độ xem trước đó khi tắt/mở lại | ✅ | `GET /api/auth/me` + `PUT /api/auth/me/last-view` — tự khôi phục Camera Wall (xem [HUONG-DAN-SU-DUNG.md](HUONG-DAN-SU-DUNG.md) mục 16) |
-| Tự động xuất hình ra nhiều màn hình khác nhau cùng máy | ❌ | Tính năng multi-monitor tầng OS/desktop app — không áp dụng cho web client, và desktop client đã bị xoá |
+| Tự động xuất hình ra nhiều màn hình khác nhau cùng máy | ❌ | Tính năng multi-monitor tầng OS/desktop app — chưa làm ở `wata-desktop-client` (mới ở giai đoạn scaffold 1 cửa sổ), không áp dụng cho web client |
 | Web Browser, Mobile app iOS/Android | ⚠️ | Chỉ có Web; chưa có app mobile riêng |
 
 ### Watchdog
@@ -116,5 +116,5 @@ Chú thích trạng thái: ✅ Đã có · ⚠️ Có một phần / khác cách
 
 1. **Nhóm không thể đáp ứng theo đúng nghĩa vì bản chất là hệ thống tự viết**: chứng nhận sở hữu trí tuệ/bản quyền tác giả, "phần mềm thương mại mua 1 lần không phí bảo trì", chứng nhận tương thích >90 hãng camera, hybrid Analog/IP thật sự.
 2. **Thiếu hẳn, cần làm thêm nếu muốn đạt**: Mobile app iOS/Android, Monitoring app riêng, Video Wall đa màn hình/đa máy thật sự, mã hoá AES cho file ghi hình, Edge Recording ONVIF Profile G, đồng bộ nhóm AD/LDAP, ghi luồng phụ (dual-stream), SDK đóng gói chính thức.
-3. **Desktop client đã từng có nhưng bị xoá** theo yêu cầu trước đó — nếu spec này dùng để chào thầu, cần cân nhắc khôi phục hoặc làm lại.
+3. **Desktop client đang được làm lại** (`wata-desktop-client`, Avalonia UI .NET 8 — bản WPF cũ đã bị xoá trước đó) — mới ở giai đoạn scaffold + player RTSP thử nghiệm, còn xa mới đạt các yêu cầu hardware decode/multi-monitor/PTZ HID mô tả trong spec. Xem roadmap trong `wata-desktop-client/README.md`.
 4. **Điểm mạnh thực sự vượt spec cơ bản**: bộ 4 module AI (ANPR, Face, Behavior, VCA) đã tích hợp sẵn trong cùng hệ thống, không cần license riêng như các hãng VMS thương mại — đây có thể là điểm khác biệt cạnh tranh nếu trình bày đúng cách thay vì cố khớp 100% với spec dạng sao chép từ phần mềm VMS thương mại có sẵn.
