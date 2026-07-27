@@ -87,7 +87,7 @@ Chú thích trạng thái: ✅ Đã có · ⚠️ Có một phần / khác cách
 
 ### Video wall
 
-⚠️ Khác quy mô — có "Camera Wall" (lưới NxN trong 1 cửa sổ trình duyệt, tối đa cấu hình 32×32). Đây là **grid xem nhiều camera trong 1 màn hình**, KHÔNG phải "Video Wall" đúng nghĩa doanh nghiệp (đẩy layout ra nhiều màn hình vật lý/nhiều máy tính khác nhau, điều khiển từ xa qua client riêng, chia sẻ tức thời giữa các video wall). Yêu cầu "100 màn hình, 20 hàng/cột" **chưa có**.
+⚠️ Khác quy mô — cả web (`emap-demo`, lưới NxN tối đa 32×32) và desktop (`wata-desktop-client`, lưới 1-8) đều có "Camera Wall". Đây là **grid xem nhiều camera trong 1 cửa sổ/màn hình**, KHÔNG phải "Video Wall" đúng nghĩa doanh nghiệp (đẩy layout ra nhiều màn hình vật lý/nhiều máy tính khác nhau, điều khiển từ xa qua client riêng, chia sẻ tức thời giữa các video wall). Yêu cầu "100 màn hình, 20 hàng/cột" **chưa có** ở cả 2.
 
 ### Mô-đun nhận dạng biển số xe (ANPR)
 
