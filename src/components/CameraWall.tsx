@@ -1,13 +1,15 @@
 import CameraVideoCard from "./CameraVideoCard";
 import type { Camera } from "../types/camera";
+import type { VehicleBox } from "../types/behavior";
 
 interface Props {
   cameras: Camera[];
+  vehiclesByCamera: Record<number, VehicleBox[]>;
   onRemove: (id: number) => void;
   gridSize: number;
 }
 
-function CameraWall({ cameras, onRemove, gridSize }: Props) {
+function CameraWall({ cameras, vehiclesByCamera, onRemove, gridSize }: Props) {
   const totalSlots = gridSize * gridSize;
   const visibleCameras = cameras.slice(0, totalSlots);
   const emptySlotCount = Math.max(totalSlots - visibleCameras.length, 0);
@@ -55,7 +57,11 @@ function CameraWall({ cameras, onRemove, gridSize }: Props) {
             boxShadow: compact ? "none" : "var(--shadow-md)",
           }}
         >
-          <CameraVideoCard camera={camera} onRemove={() => onRemove(camera.id)} />
+          <CameraVideoCard
+            camera={camera}
+            vehicleBoxes={vehiclesByCamera[camera.id] ?? []}
+            onRemove={() => onRemove(camera.id)}
+          />
         </div>
       ))}
 

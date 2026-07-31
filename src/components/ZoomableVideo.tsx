@@ -8,6 +8,10 @@ interface Props {
   muted?: boolean;
   autoPlay?: boolean;
   style?: React.CSSProperties;
+  // Lớp phủ vẽ đè lên video (vd khung phương tiện AI) — đặt CÙNG 1 wrapper
+  // với video để tự động ăn theo pan/zoom, không cần tự tính lại toạ độ khi
+  // người dùng phóng to/kéo khung hình.
+  overlay?: React.ReactNode;
 }
 
 const MIN_ZOOM = 1;
@@ -32,7 +36,7 @@ function clampPan(zoom: number, x: number, y: number) {
   return { x: Math.max(-max, Math.min(max, x)), y: Math.max(-max, Math.min(max, y)) };
 }
 
-function ZoomableVideo({ src, controls, muted, autoPlay, style }: Props) {
+function ZoomableVideo({ src, controls, muted, autoPlay, style, overlay }: Props) {
   const { t } = useTranslation();
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -91,23 +95,36 @@ function ZoomableVideo({ src, controls, muted, autoPlay, style }: Props) {
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
-      <HlsVideo
-        src={src}
-        controls={controls}
-        muted={muted}
-        autoPlay={autoPlay}
+      <div
         style={{
+          position: "relative",
           width: "100%",
           height: "100%",
-          display: "block",
-          objectFit: "contain",
-          background: "#000",
           transform: `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`,
           transformOrigin: "center center",
           transition: dragging ? "none" : "transform 120ms ease-out",
           cursor: zoom > 1 ? (dragging ? "grabbing" : "grab") : "default",
         }}
-      />
+      >
+        <HlsVideo
+          src={src}
+          controls={controls}
+          muted={muted}
+          autoPlay={autoPlay}
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "block",
+            // "fill" (không letterbox) khi có overlay — bắt buộc để toạ độ
+            // chuẩn hoá 0..1 của khung AI khớp chính xác 1:1 với % container,
+            // cùng lý do đã áp dụng ở VcaPanel. Không có overlay thì vẫn giữ
+            // "contain" như cũ (không đổi hành vi các nơi khác đang dùng).
+            objectFit: overlay ? "fill" : "contain",
+            background: "#000",
+          }}
+        />
+        {overlay}
+      </div>
 
       <div
         style={{

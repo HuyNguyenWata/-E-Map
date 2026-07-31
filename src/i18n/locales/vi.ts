@@ -15,6 +15,9 @@ const vi = {
     submit: "Đăng nhập",
     submitting: "Đang đăng nhập...",
     error: "Sai tên đăng nhập hoặc mật khẩu",
+    backendUnreachable: "Không kết nối được máy chủ VMS — sai thông tin đăng nhập hoặc chưa có backend.",
+    demoBanner: "Không phát hiện máy chủ VMS. Bạn vẫn có thể xem thử giao diện với dữ liệu mẫu.",
+    demoButton: "🎬 Xem Demo (không cần máy chủ)",
   },
   dashboard: {
     title: "📷 Camera Dashboard",

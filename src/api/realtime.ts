@@ -2,6 +2,7 @@ import * as signalR from "@microsoft/signalr";
 import type { Camera } from "../types/camera";
 import type { CameraAlert } from "../types/alert";
 import type { SystemHealth } from "../types/systemHealth";
+import type { VehicleDetection } from "../types/behavior";
 import { API_BASE_URL } from "./config";
 import { getToken } from "./authToken";
 
@@ -9,6 +10,7 @@ export interface CameraHubHandlers {
   onCameraUpdated?: (camera: Camera) => void;
   onAlertCreated?: (alert: CameraAlert) => void;
   onSystemHealthUpdated?: (health: SystemHealth) => void;
+  onVehiclesDetected?: (detection: VehicleDetection) => void;
 }
 
 export function createCameraHubConnection(
@@ -27,6 +29,7 @@ export function createCameraHubConnection(
   if (handlers.onCameraUpdated) connection.on("CameraUpdated", handlers.onCameraUpdated);
   if (handlers.onAlertCreated) connection.on("AlertCreated", handlers.onAlertCreated);
   if (handlers.onSystemHealthUpdated) connection.on("SystemHealthUpdated", handlers.onSystemHealthUpdated);
+  if (handlers.onVehiclesDetected) connection.on("VehiclesDetected", handlers.onVehiclesDetected);
 
   return connection;
 }

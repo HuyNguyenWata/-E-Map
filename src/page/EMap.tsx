@@ -51,7 +51,7 @@ function EMap() {
 
     filtered,
   } = useCameraFilter(cameras);
-  const { alerts } = useCameraRealtime(cameras, updateCamera, upsertCamera);
+  const { alerts, vehiclesByCamera } = useCameraRealtime(cameras, updateCamera, upsertCamera);
   const { favoriteIds, toggleFavorite } = useFavoriteCameras();
   const { health } = useSystemHealth();
   const { stats: alertStats } = useAlertStats(7, alerts.length);
@@ -491,6 +491,7 @@ function EMap() {
         <RightPanel
           camera={selectedCamera}
           alerts={alerts}
+          vehicleBoxes={selectedCamera ? (vehiclesByCamera[selectedCamera.id] ?? []) : []}
           close={() => setSelectedCamera(null)}
           onEdit={handleOpenEditCamera}
           onDelete={handleDeleteCamera}
@@ -632,6 +633,7 @@ function EMap() {
           <div style={{ flex: 1, minHeight: 0 }}>
             <CameraWall
               cameras={selectedCameras}
+              vehiclesByCamera={vehiclesByCamera}
               onRemove={removeCamera}
               gridSize={wallGridSize}
             />

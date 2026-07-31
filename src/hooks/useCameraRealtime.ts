@@ -6,6 +6,7 @@ import { getAlerts, resolveAlert } from "../api/client";
 import type { Camera } from "../types/camera";
 
 import type { CameraAlert } from "../types/alert";
+import type { VehicleBox } from "../types/behavior";
 
 export default function useCameraRealtime(
   _cameras: Camera[],
@@ -14,6 +15,17 @@ export default function useCameraRealtime(
 ) {
   const [alerts, setAlerts] = useState<CameraAlert[]>([]);
   const alertClearTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+
+  // Chỉ giữ khung phương tiện của camera đang xem gần nhất mỗi camera — dữ
+  // liệu này chỉ để vẽ live, không có ý nghĩa lưu lịch sử (xem VehicleBoxDto
+  // phía backend), nên không cần giới hạn số lượng như alerts.
+  const [vehiclesByCamera, setVehiclesByCamera] = useState<Record<number, VehicleBox[]>>({});
+  // Nếu 1 camera ngừng nhận cập nhật (service quá tải/bỏ nhịp lấy mẫu) thì
+  // khung xe cũ phải TỰ BIẾN MẤT thay vì đứng hình mãi ở vị trí xe đã đi mất
+  // từ lâu — đã gặp thật: máy quá tải, khung xe "dính" sai vị trí trông như
+  // tính năng bị lỗi. 12s = hơn gấp đôi nhịp lấy mẫu 5s, đủ chịu được 1-2 lần
+  // lỡ nhịp mà không xoá khung quá sớm.
+  const vehicleClearTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
 
   useEffect(() => {
     let cancelled = false;
@@ -28,6 +40,8 @@ export default function useCameraRealtime(
       .catch((err) => console.error("Không tải được lịch sử alert:", err));
 
     const clearTimers = alertClearTimers.current;
+    const vehicleTimers = vehicleClearTimers.current;
+    const VEHICLE_STALE_MS = 12000;
 
     const connection = createCameraHubConnection({
       onCameraUpdated: (camera) => {
@@ -56,6 +70,21 @@ export default function useCameraRealtime(
           }, 10000),
         );
       },
+
+      onVehiclesDetected: (detection) => {
+        setVehiclesByCamera((prev) => ({ ...prev, [detection.cameraId]: detection.vehicles }));
+
+        const existingTimer = vehicleTimers.get(detection.cameraId);
+        if (existingTimer) clearTimeout(existingTimer);
+
+        vehicleTimers.set(
+          detection.cameraId,
+          setTimeout(() => {
+            setVehiclesByCamera((prev) => ({ ...prev, [detection.cameraId]: [] }));
+            vehicleTimers.delete(detection.cameraId);
+          }, VEHICLE_STALE_MS),
+        );
+      },
     });
 
     connection.start().catch((err) => {
@@ -77,10 +106,13 @@ export default function useCameraRealtime(
       connection.stop();
       clearTimers.forEach((timeoutId) => clearTimeout(timeoutId));
       clearTimers.clear();
+      vehicleTimers.forEach((timeoutId) => clearTimeout(timeoutId));
+      vehicleTimers.clear();
     };
   }, [updateCamera, upsertCamera]);
 
   return {
     alerts,
+    vehiclesByCamera,
   };
 }

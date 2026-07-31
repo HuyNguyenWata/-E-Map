@@ -1,15 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/AuthContext";
+import { BackendUnavailableError, isBackendReachable } from "../api/client";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 
 function LoginPage() {
   const { t } = useTranslation();
-  const { login } = useAuth();
+  const { login, loginDemo } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // null = đang kiểm tra, chưa biết có backend hay không.
+  const [backendReachable, setBackendReachable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    isBackendReachable().then((reachable) => {
+      if (!cancelled) setBackendReachable(reachable);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,8 +33,9 @@ function LoginPage() {
 
     try {
       await login(username, password);
-    } catch {
-      setError(t("login.error"));
+    } catch (err) {
+      setBackendReachable(false);
+      setError(err instanceof BackendUnavailableError ? t("login.backendUnreachable") : t("login.error"));
     } finally {
       setSubmitting(false);
     }
@@ -78,6 +94,23 @@ function LoginPage() {
         <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
           {submitting ? t("login.submitting") : t("login.submit")}
         </button>
+
+        {backendReachable === false && (
+          <div
+            style={{
+              marginTop: 18,
+              paddingTop: 16,
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
+              {t("login.demoBanner")}
+            </p>
+            <button type="button" className="btn btn-block" onClick={loginDemo}>
+              {t("login.demoButton")}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );

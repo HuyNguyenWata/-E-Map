@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { Camera } from "../types/camera";
 import type { CameraAlert } from "../types/alert";
 import type { RecordingSegment } from "../types/recording";
+import type { VehicleBox } from "../types/behavior";
 import EventTimeline from "./EventTimeline";
 
 import EventFilter from "./EventFilter";
@@ -12,14 +13,18 @@ import useCameraRecordings from "../hooks/useCameraRecordings";
 import useBookmarks from "../hooks/useBookmarks";
 import useEventClips from "../hooks/useEventClips";
 import ZoomableVideo from "./ZoomableVideo";
+import VehicleBoxOverlay from "./VehicleBoxOverlay";
 import RecordingList from "./RecordingList";
 import Modal from "./Modal";
 import { useAuth } from "../auth/AuthContext";
 import { exportRecording, downloadEventClip } from "../api/client";
+
 interface Props {
   camera: Camera | null;
 
   alerts: CameraAlert[];
+
+  vehicleBoxes: VehicleBox[];
 
   onClose: () => void;
 
@@ -35,6 +40,8 @@ function CameraDetailPanel({
   camera,
 
   alerts,
+
+  vehicleBoxes,
 
   onClose,
 
@@ -261,6 +268,10 @@ function CameraDetailPanel({
           borderRadius: "var(--radius-md)",
           background: "#000",
         }}
+        // Chỉ vẽ khung phương tiện khi đang xem LIVE — khung xe là dữ liệu
+        // tức thời (~5s/lần), xem lại bản ghi cũ thì không có gì đồng bộ để
+        // vẽ (và dễ gây hiểu lầm là khung đang khớp đúng thời điểm đang tua).
+        overlay={!selectedRecording ? <VehicleBoxOverlay vehicleBoxes={vehicleBoxes} /> : undefined}
       />
 
       <hr />

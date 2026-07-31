@@ -16,17 +16,52 @@ import type { VcaCameraConfig, VcaLine, VcaZone, CreateVcaLineInput, CreateVcaZo
 import type { EventClip } from "../types/eventClip";
 import { API_BASE_URL } from "./config";
 import { getToken, notifyUnauthorized } from "./authToken";
+import { DEMO_CAMERAS, DEMO_ZONES } from "../data/demoData";
+
+// Ném ra khi fetch() thất bại ở tầng mạng (server không chạy, DNS lỗi, CORS
+// chặn hẳn request...) — khác với lỗi HTTP 4xx/5xx (server có phản hồi, chỉ
+// là từ chối request). Cho phép các hàm gọi API phân biệt "không có backend"
+// (có thể fallback dữ liệu demo) với "backend từ chối" (phải báo lỗi thật).
+export class BackendUnavailableError extends Error {
+  constructor(path: string) {
+    super(`Không thể kết nối máy chủ: ${path}`);
+    this.name = "BackendUnavailableError";
+  }
+}
+
+// Kiểm tra nhanh xem backend có đang chạy không, dùng ở màn hình đăng nhập để
+// quyết định có gợi ý chế độ xem demo (offline) hay không. Bất kỳ phản hồi
+// HTTP nào (kể cả 401/404) đều coi là "có backend" — chỉ lỗi tầng mạng/timeout
+// mới coi là không có backend.
+export async function isBackendReachable(timeoutMs = 2500): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    await fetch(`${API_BASE_URL}/api/cameras`, { signal: controller.signal });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken();
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    ...init,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      ...init,
+    });
+  } catch {
+    throw new BackendUnavailableError(path);
+  }
 
   if (res.status === 401) {
     notifyUnauthorized();
@@ -248,12 +283,25 @@ export function discoverOnvifCameras(): Promise<DiscoveredDevice[]> {
   return request<DiscoveredDevice[]>("/api/discovery/onvif", { method: "POST" });
 }
 
-export function getCameras(): Promise<Camera[]> {
-  return request<Camera[]>("/api/cameras");
+// Không có backend thì vẫn phải "xem được các camera hiện có" — fallback về
+// dữ liệu demo khi lỗi xảy ra ở tầng mạng (BackendUnavailableError). Lỗi
+// nghiệp vụ thật (401, 500...) vẫn ném ra bình thường để UI báo lỗi đúng.
+export async function getCameras(): Promise<Camera[]> {
+  try {
+    return await request<Camera[]>("/api/cameras");
+  } catch (err) {
+    if (err instanceof BackendUnavailableError) return DEMO_CAMERAS;
+    throw err;
+  }
 }
 
-export function getZones(): Promise<Zone[]> {
-  return request<Zone[]>("/api/zones");
+export async function getZones(): Promise<Zone[]> {
+  try {
+    return await request<Zone[]>("/api/zones");
+  } catch (err) {
+    if (err instanceof BackendUnavailableError) return DEMO_ZONES;
+    throw err;
+  }
 }
 
 export function getAlerts(cameraId?: number, take = 50): Promise<CameraAlert[]> {

@@ -17,6 +17,9 @@ const en: TranslationShape = {
     submit: "Sign in",
     submitting: "Signing in...",
     error: "Incorrect username or password",
+    backendUnreachable: "Could not reach the VMS server — wrong credentials, or there is no backend running.",
+    demoBanner: "No VMS server detected. You can still preview the UI with sample data.",
+    demoButton: "🎬 View Demo (no server needed)",
   },
   dashboard: {
     title: "📷 Camera Dashboard",

@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_ANPR_SERVICE_URL?: string;
   readonly VITE_FACE_SERVICE_URL?: string;
   readonly VITE_BEHAVIOR_SERVICE_URL?: string;
+  readonly VITE_MAP_STYLE_URL?: string;
 }
 
 interface ImportMeta {

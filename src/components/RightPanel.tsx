@@ -4,11 +4,14 @@ import CameraDetailPanel from "./CameraDetailPanel";
 import type { Camera } from "../types/camera";
 
 import type { CameraAlert } from "../types/alert";
+import type { VehicleBox } from "../types/behavior";
 
 interface Props {
   camera: Camera | null;
 
   alerts: CameraAlert[];
+
+  vehicleBoxes: VehicleBox[];
 
   close: () => void;
 
@@ -24,6 +27,8 @@ function RightPanel({
   camera,
 
   alerts,
+
+  vehicleBoxes,
 
   close,
 
@@ -63,6 +68,7 @@ function RightPanel({
     <CameraDetailPanel
       camera={camera}
       alerts={alerts}
+      vehicleBoxes={vehicleBoxes}
       onClose={close}
       onEdit={onEdit}
       onDelete={onDelete}
